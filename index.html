@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan & Pay - Cassa & Scanner</title>
+    <!-- Tailwind CSS CDN per uno styling rapido e responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Stili personalizzati per il font Inter e per sovrascrivere Tailwind se necessario */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Sfondo grigio chiaro */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Stili per il container principale dell'app */
+        .app-container {
+            background-color: #ffffff;
+            border-radius: 1.5rem; /* Bordi arrotondati */
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            text-align: center;
+            max-width: 900px; /* Larghezza massima per tablet */
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        /* Stili per i pulsanti */
+        button {
+            @apply bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105;
+        }
+
+        /* Stili per gli input */
+        input[type="text"], input[type="number"] {
+            @apply p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full;
+        }
+
+        /* Stili per le liste */
+        ul {
+            @apply list-none p-0 m-0;
+        }
+
+        li {
+            @apply flex justify-between items-center bg-gray-50 p-3 rounded-lg mb-2 shadow-sm;
+        }
+
+        /* Stili per l'area dello scanner video */
+        #scanner-video {
+            width: 100%;
+            height: 100%; /* Copre l'intera area del div padre */
+            background-color: #000;
+            border-radius: 1rem;
+            object-fit: cover; /* Assicura che il video riempia l'area */
+        }
+
+        /* Stili per l'area QR Code */
+        #qr-code-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            background-color: #f9fafb;
+            border-radius: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Stili per l'area dello scanner QR (html5-qrcode) */
+        #reader {
+            width: 100%;
+            max-width: 500px; /* Limita la larghezza dello scanner QR */
+            margin: 0 auto;
+            border: 2px solid #e0e0e0;
+            border-radius: 1rem;
+            overflow: hidden; /* Nasconde eventuali bordi extra del video */
+            position: relative; /* Necessario per il posizionamento assoluto degli elementi figli */
+        }
+        /* Nasconde i pulsanti di controllo di html5-qrcode */
+        #reader__dashboard {
+            display: none !important; 
+        }
+        #reader__scan_region {
+            border-radius: 1rem; /* Assicura bordi arrotondati anche per l'area di scansione */
+        }
+        
+        /* Stili specifici per l'area dello scanner barcode */
+        #barcode-scanner-area {
+            position: relative;
+            background-color: #000;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden; /* Per contenere il video all'interno dei bordi arrotondati */
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .app-container {
+                padding: 1.5rem;
+                border-radius: 1rem;
+            }
+            .tablet-layout .md\:flex-row-reverse {
+                flex-direction: column; /* Impila le colonne su schermi più piccoli */
+            }
+            .tablet-layout .md\:w-2\/3, .tablet-layout .md\:w-1\/3 {
+                width: 100%; /* Occupano tutta la larghezza */
+            }
+            .tablet-layout .p-6 {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <h1 class="text-4xl font-extrabold text-blue-700 mb-4">Scan & Pay</h1>
+        <p id="device-info" class="text-lg text-gray-700 mb-6">Rilevamento dispositivo in corso...</p>
+
+        <!-- Area per la scelta del ruolo iniziale -->
+        <div id="role-selection" class="flex flex-col md:flex-row gap-6 justify-center">
+            <button id="btn-is-cashier" class="flex-1">Sono una Cassa (Tablet)</button>
+            <button id="btn-is-scanner" class="flex-1">Sono uno Scanner (Smartphone)</button>
+        </div>
+
+        <!-- Contenuto dinamico caricato via JavaScript -->
+        <div id="content-area" class="hidden">
+            <!-- Qui verrà iniettato il layout specifico (cassa o scanner) -->
+        </div>
+
+        <!-- Modale per messaggi (sostituisce alert()) -->
+        <div id="message-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden">
+            <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center">
+                <h3 id="modal-title" class="text-2xl font-bold mb-4 text-gray-800"></h3>
+                <p id="modal-message" class="text-gray-600 mb-6"></p>
+                <button id="modal-close-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librerie JavaScript esterne, caricate prima dello script principale -->
+    <!-- Libreria per la generazione di QR Code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <!-- Libreria per la scansione di QR e Barcode -->
+    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+
+    <script>
+        // Funzione per mostrare il modale personalizzato
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('message-modal').classList.remove('hidden');
+        }
+
+        // Event listener per chiudere il modale
+        document.getElementById('modal-close-btn').addEventListener('click', () => {
+            document.getElementById('message-modal').classList.add('hidden');
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const deviceInfoEl = document.getElementById('device-info');
+            const roleSelectionEl = document.getElementById('role-selection');
+            const contentAreaEl = document.getElementById('content-area');
+            const btnIsCashier = document.getElementById('btn-is-cashier');
+            const btnIsScanner = document.getElementById('btn-is-scanner');
+
+            let currentRole = null; // 'cashier' or 'scanner'
+            let sessionId = null; // ID univoco per l'accoppiamento
+            let ws = null; // Variabile per la connessione WebSocket (concettuale)
+            let html5QrCode = null; // Istanza dello scanner QR per html5-qrcode
+
+            // --- FUNZIONI DI RILEVAMENTO DISPOSITIVO E SCELTA RUOLO ---
+
+            // Funzione euristica per rilevare il tipo di dispositivo
+            function detectDeviceType() {
+                const userAgent = navigator.userAgent.toLowerCase();
+                const screenWidth = window.innerWidth;
+                
+                const isMobileUA = userAgent.includes('mobile') || userAgent.includes('android') || userAgent.includes('iphone') || userAgent.includes('ipod');
+                const isTabletUA = userAgent.includes('ipad') || (userAgent.includes('android') && !isMobileUA && screenWidth > 600); // Android tablet ma non phone
+                
+                if (isTabletUA || (screenWidth > 768 && !isMobileUA)) {
+                    return 'tablet';
+                } else if (isMobileUA || screenWidth <= 768) {
+                    return 'phone';
+                }
+                return 'unknown';
+            }
+
+            const detectedDevice = detectDeviceType();
+            deviceInfoEl.textContent = `Dispositivo rilevato: ${detectedDevice.toUpperCase()}. Scegli il tuo ruolo:`;
+
+            // Gestione della scelta del ruolo
+            btnIsCashier.addEventListener('click', () => setRole('cashier'));
+            btnIsScanner.addEventListener('click', () => setRole('scanner'));
+
+            function setRole(role) {
+                currentRole = role;
+                roleSelectionEl.classList.add('hidden'); // Nasconde la selezione del ruolo
+                contentAreaEl.classList.remove('hidden'); // Mostra l'area dei contenuti
+
+                if (currentRole === 'cashier') {
+                    renderCashierUI();
+                    // Genera un ID di sessione univoco per la cassa
+                    sessionId = crypto.randomUUID();
+                    // Mostra il QR code per l'accoppiamento
+                    displayQRCode(sessionId);
+                    deviceInfoEl.textContent = `Sei in modalità CASSA (Tablet). Scansiona il QR per accoppiare uno scanner.`;
+                } else {
+                    deviceInfoEl.textContent = `Sei in modalità SCANNER (Smartphone). Scansiona il QR del tablet cassa.`;
+                    renderQRCodeScannerUI(); // Mostra prima lo scanner QR per l'accoppiamento
+                    initQRCodeScanner(); // Avvia lo scanner QR
+                }
+                // Inizializza la connessione WebSocket (simulata qui)
+                // In un'applicazione reale, l'URL del WebSocket sarebbe un endpoint del tuo server
+                // ws = new WebSocket('ws://localhost:8080'); // Esempio: URL del tuo server WebSocket
+                // ws.onopen = () => console.log('WebSocket connesso');
+                // ws.onmessage = (event) => handleWebSocketMessage(event.data);
+                // ws.onclose = () => console.log('WebSocket disconnesso');
+                // ws.onerror = (error) => console.error('WebSocket errore:', error);
+            }
+
+            // --- FUNZIONI DI RENDERING UI ---
+
+            function renderCashierUI() {
+                contentAreaEl.classList.add('tablet-layout', 'flex', 'flex-col', 'md:flex-row-reverse', 'gap-6');
+                contentAreaEl.innerHTML = `
+                    <!-- Pannello di gestione prodotti (a destra su tablet) -->
+                    <div class="w-full md:w-1/3 p-6 bg-gray-50 rounded-xl shadow-md">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Gestione Prodotti</h2>
+                        <div class="mb-4">
+                            <input type="text" id="product-name" placeholder="Nome Prodotto" class="mb-2">
+                            <input type="number" id="product-price" placeholder="Prezzo" step="0.01" class="mb-2">
+                            <button id="btn-generate-barcode" class="w-full mb-2">Genera Barcode</button>
+                            <button id="btn-save-product" class="w-full bg-green-600 hover:bg-green-700">Salva Prodotto</button>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-3">Prodotti Registrati</h3>
+                        <ul id="registered-products-list" class="text-left overflow-y-auto max-h-60">
+                            <!-- I prodotti verranno aggiunti qui -->
+                        </ul>
+                    </div>
+
+                    <!-- Pannello Cassa (a sinistra su tablet) -->
+                    <div class="w-full md:w-2/3 p-6 bg-white rounded-xl shadow-md flex flex-col">
+                        <h2 class="text-3xl font-bold text-gray-800 mb-4">Cassa</h2>
+                        <div id="qr-code-display" class="mb-6 hidden">
+                            <p class="text-gray-600 mb-2">Scansiona questo QR per accoppiare uno scanner:</p>
+                            <div id="qr-code-area">
+                                <canvas id="qr-canvas" class="w-48 h-48"></canvas>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-2">ID Sessione: <span id="session-id-display" class="font-mono font-bold text-gray-700"></span></p>
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-700 mb-3">Articoli Scansionati</h3>
+                        <ul id="scanned-products-list" class="flex-grow text-left overflow-y-auto max-h-96 pr-2">
+                            <!-- Scanned products will be added here -->
+                        </ul>
+                        <div class="mt-6 pt-4 border-t border-gray-200">
+                            <p class="text-2xl font-bold text-gray-800">Totale: <span id="total-amount" class="text-blue-600">0.00 €</span></p>
+                            <div class="flex gap-4 mt-4">
+                                <button id="btn-clear-cart" class="flex-1 bg-red-600 hover:bg-red-700">Svuota Cassa</button>
+                                <button id="btn-checkout" class="flex-1 bg-green-600 hover:bg-green-700">Paga</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                initCashierListeners();
+            }
+
+            function renderQRCodeScannerUI() {
+                contentAreaEl.classList.add('phone-layout', 'flex', 'flex-col', 'gap-6');
+                contentAreaEl.innerHTML = `
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Scansiona QR per Accoppiare</h2>
+                    <div id="reader" class="bg-gray-200 rounded-xl p-4 flex flex-col items-center justify-center h-80 relative overflow-hidden">
+                        <!-- html5-qrcode renderà qui l'area video dello scanner -->
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="w-3/4 h-1/4 border-2 border-blue-500 rounded-lg animate-pulse"></div>
+                        </div>
+                        <p id="qr-scan-feedback" class="absolute bottom-4 text-white bg-gray-800 bg-opacity-75 px-4 py-2 rounded-lg text-lg z-10">Inquadra il QR Code del tablet...</p>
+                    </div>
+                `;
+            }
+
+            function renderBarcodeScannerUI() {
+                contentAreaEl.classList.add('phone-layout', 'flex', 'flex-col', 'gap-6');
+                contentAreaEl.innerHTML = `
+                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Scanner Codici a Barre</h2>
+                    <div id="barcode-scanner-area" class="bg-gray-200 rounded-xl p-4 flex flex-col items-center justify-center h-80 relative overflow-hidden">
+                        <video id="scanner-video" class="absolute inset-0 w-full h-full object-cover"></video>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="w-3/4 h-1/4 border-2 border-green-500 rounded-lg animate-pulse"></div>
+                        </div>
+                        <p id="scan-feedback" class="absolute bottom-4 text-white bg-gray-800 bg-opacity-75 px-4 py-2 rounded-lg text-lg z-10">Inquadra il Barcode</p>
+                    </div>
+                    <p id="last-scanned" class="text-lg text-gray-700 mt-4">Ultima scansione: Nessuna</p>
+                `;
+                initBarcodeScannerListeners(); // Inizializza i listener e avvia la telecamera per lo scanner barcode
+            }
+
+            // --- LOGICA CASSA (TABLET) ---
+            const products = []; // Array per i prodotti registrati
+            const cart = []; // Array per i prodotti nel carrello
+
+            function initCashierListeners() {
+                const productNameInput = document.getElementById('product-name');
+                const productPriceInput = document.getElementById('product-price');
+                const btnGenerateBarcode = document.getElementById('btn-generate-barcode');
+                const btnSaveProduct = document.getElementById('btn-save-product');
+                const registeredProductsList = document.getElementById('registered-products-list');
+                const scannedProductsList = document.getElementById('scanned-products-list');
+                const totalAmountEl = document.getElementById('total-amount');
+                const btnClearCart = document.getElementById('btn-clear-cart');
+                const btnCheckout = document.getElementById('btn-checkout');
+
+                // Gestione generazione barcode (simulato)
+                btnGenerateBarcode.addEventListener('click', () => {
+                    const name = productNameInput.value.trim();
+                    if (name) {
+                        // Genera un barcode semplice basato sul timestamp per simulazione
+                        const barcode = `PROD-${Date.now()}`;
+                        showModal('Barcode Generato', `Copia questo barcode per test: ${barcode}`);
+                        // In un'app reale, questo barcode verrebbe stampato o visualizzato su un display
+                    } else {
+                        showModal('Errore', 'Inserisci un nome prodotto per generare il barcode.');
+                    }
+                });
+
+                // Gestione salvataggio prodotto
+                btnSaveProduct.addEventListener('click', () => {
+                    const name = productNameInput.value.trim();
+                    const price = parseFloat(productPriceInput.value);
+                    if (name && !isNaN(price) && price > 0) {
+                        // Genera un barcode fittizio per il prodotto salvato
+                        const barcode = `BC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                        const newProduct = { id: barcode, name, price };
+                        products.push(newProduct);
+                        renderRegisteredProducts();
+                        productNameInput.value = '';
+                        productPriceInput.value = '';
+                        showModal('Prodotto Salvato', `"${name}" salvato con barcode: ${barcode}`);
+                    } else {
+                        showModal('Errore', 'Inserisci un nome e un prezzo valido per il prodotto.');
+                    }
+                });
+
+                function renderRegisteredProducts() {
+                    registeredProductsList.innerHTML = '';
+                    products.forEach(product => {
+                        const li = document.createElement('li');
+                        li.className = 'flex justify-between items-center bg-white p-3 rounded-lg mb-2 shadow-sm text-gray-700';
+                        li.innerHTML = `
+                            <span>${product.name} (${product.price.toFixed(2)} €)</span>
+                            <span class="text-sm text-gray-500">BC: ${product.id}</span>
+                        `;
+                        registeredProductsList.appendChild(li);
+                    });
+                }
+
+                // Funzione per aggiungere un prodotto al carrello (simulato da scansione)
+                // Resa accessibile globalmente per simulare la comunicazione tra scanner e cassa
+                window.addProductToCart = (barcode) => {
+                    const product = products.find(p => p.id === barcode);
+                    if (product) {
+                        const existingItem = cart.find(item => item.id === barcode);
+                        if (existingItem) {
+                            existingItem.quantity++;
+                        } else {
+                            cart.push({ ...product, quantity: 1 });
+                        }
+                        renderCart();
+                        showModal('Prodotto Aggiunto', `Aggiunto: ${product.name}`);
+                    } else {
+                        showModal('Prodotto Sconosciuto', `Barcode "${barcode}" non trovato. Registra il prodotto nella sezione "Gestione Prodotti".`);
+                    }
+                };
+
+                function renderCart() {
+                    scannedProductsList.innerHTML = '';
+                    let total = 0;
+                    if (cart.length === 0) {
+                        scannedProductsList.innerHTML = '<li class="text-gray-500 text-center py-4">Nessun articolo scansionato.</li>';
+                    }
+                    cart.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'flex justify-between items-center bg-white p-3 rounded-lg mb-2 shadow-sm text-gray-700';
+                        const itemTotal = item.price * item.quantity;
+                        total += itemTotal;
+                        li.innerHTML = `
+                            <div class="flex-grow text-left">
+                                <span class="font-semibold">${item.name}</span><br>
+                                <span class="text-sm text-gray-500">${item.price.toFixed(2)} € x ${item.quantity}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button data-id="${item.id}" data-action="decrease" class="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm hover:bg-gray-300 transform-none scale-100 shadow-none">-</button>
+                                <span class="font-bold">${item.quantity}</span>
+                                <button data-id="${item.id}" data-action="increase" class="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm hover:bg-gray-300 transform-none scale-100 shadow-none">+</button>
+                                <span class="font-bold w-20 text-right">${itemTotal.toFixed(2)} €</span>
+                                <button data-id="${item.id}" data-action="remove" class="bg-red-500 text-white px-2 py-1 rounded-md text-sm hover:bg-red-600 transform-none scale-100 shadow-none">X</button>
+                            </div>
+                        `;
+                        scannedProductsList.appendChild(li);
+                    });
+                    totalAmountEl.textContent = total.toFixed(2) + ' €';
+
+                    // Aggiungi listener per i pulsanti di quantità e rimozione
+                    scannedProductsList.querySelectorAll('button').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const id = e.target.dataset.id;
+                            const action = e.target.dataset.action;
+                            const itemIndex = cart.findIndex(item => item.id === id);
+
+                            if (itemIndex > -1) {
+                                if (action === 'increase') {
+                                    cart[itemIndex].quantity++;
+                                } else if (action === 'decrease') {
+                                    cart[itemIndex].quantity--;
+                                    if (cart[itemIndex].quantity <= 0) {
+                                        cart.splice(itemIndex, 1); // Rimuovi se la quantità è 0
+                                    }
+                                } else if (action === 'remove') {
+                                    cart.splice(itemIndex, 1);
+                                }
+                                renderCart();
+                            }
+                        });
+                    });
+                }
+
+                btnClearCart.addEventListener('click', () => {
+                    if (cart.length > 0) {
+                        cart.length = 0; // Svuota l'array
+                        renderCart();
+                        showModal('Cassa Svuotata', 'Il carrello è stato svuotato.');
+                    } else {
+                        showModal('Info', 'Il carrello è già vuoto.');
+                    }
+                });
+
+                btnCheckout.addEventListener('click', () => {
+                    if (cart.length > 0) {
+                        showModal('Pagamento Completato', `Totale da pagare: ${totalAmountEl.textContent}. Grazie!`);
+                        cart.length = 0; // Svuota il carrello dopo il checkout
+                        renderCart();
+                    } else {
+                        showModal('Attenzione', 'Il carrello è vuoto. Aggiungi prodotti per procedere.');
+                    }
+                });
+
+                // Inizializza con alcuni prodotti di esempio per il test
+                products.push(
+                    { id: 'BC-12345', name: 'Latte Fresco', price: 1.50 },
+                    { id: 'BC-67890', name: 'Pane Integrale', price: 2.20 },
+                    { id: 'BC-11223', name: 'Mele Rosse', price: 0.80 },
+                    { id: 'BC-44556', name: 'Uova Biologiche', price: 3.50 }
+                );
+                renderRegisteredProducts();
+            }
+
+            // --- SCANNER LOGIC (SMARTPHONE) ---
+            let simulatedScanInterval; // Variabile per l'intervallo di scansione simulata
+            let barcodeScannerHtml5QrCode = null; // Istanza separata per lo scanner barcode (non usata direttamente per barcode in questa demo, ma utile se volessi estenderla)
+
+            function initQRCodeScanner() {
+                // Verifica che Html5Qrcode sia definito prima di usarlo
+                if (typeof Html5Qrcode === 'undefined') {
+                    console.warn("Html5Qrcode non è ancora definito. Riprovo tra un attimo...");
+                    setTimeout(initQRCodeScanner, 100); // Riprova dopo 100ms
+                    return;
+                }
+
+                const qrScanFeedbackEl = document.getElementById('qr-scan-feedback');
+                if (!qrScanFeedbackEl) { // Assicurati che l'elemento esista
+                    console.error("Elemento qr-scan-feedback non trovato.");
+                    return;
+                }
+                
+                qrScanFeedbackEl.textContent = 'Inizializzazione scanner QR...';
+
+                html5QrCode = new Html5Qrcode("reader");
+                
+                // Richiedi il permesso per la fotocamera e avvia lo scanner
+                html5QrCode.start(
+                    { facingMode: "environment" }, // Preferisci la fotocamera posteriore
+                    { fps: 10, qrbox: { width: 250, height: 250 } }, // Opzioni per il frame rate e la dimensione della scatola di scansione
+                    (decodedText, decodedResult) => {
+                        // Successo nella scansione del QR code
+                        console.log(`QR Code scansionato: ${decodedText}`);
+                        sessionId = decodedText; // L'ID di sessione è il contenuto del QR
+                        showModal('Accoppiato!', `Connesso alla cassa con ID: ${sessionId}`);
+                        
+                        // Ferma lo scanner QR e passa allo scanner barcode
+                        html5QrCode.stop().then(() => {
+                            renderBarcodeScannerUI();
+                            startBarcodeScanningSimulation(); // Avvia la simulazione di scansione dei barcode
+                            deviceInfoEl.textContent = `Sei in modalità SCANNER (Smartphone). Scansioni inviate a Cassa ID: ${sessionId}`;
+                        }).catch((err) => {
+                            console.error("Errore nel fermare lo scanner QR:", err);
+                            showModal('Errore Scanner QR', 'Impossibile fermare lo scanner QR.');
+                        });
+                    },
+                    (errorMessage) => {
+                        // Errore o nessun QR code rilevato (silenzioso per evitare spam di console)
+                        // console.log(`Nessun QR Code rilevato: ${errorMessage}`);
+                        qrScanFeedbackEl.textContent = 'Inquadra il QR Code del tablet...'; // Reset del messaggio
+                    }
+                ).catch((err) => {
+                    console.error("Impossibile avviare lo scanner QR:", err);
+                    qrScanFeedbackEl.textContent = 'Errore: Fotocamera non accessibile.';
+                    showModal('Errore Scanner QR', 'Impossibile avviare lo scanner QR. Controlla i permessi della fotocamera. Potrebbe essere bloccata o non disponibile.');
+                });
+            }
+
+            function initBarcodeScannerListeners() {
+                const scannerVideo = document.getElementById('scanner-video');
+                const scanFeedback = document.getElementById('scan-feedback');
+                const lastScannedEl = document.getElementById('last-scanned');
+
+                if (!sessionId) {
+                    showModal('Errore', 'Scanner non accoppiato. Scansiona prima il QR Code della cassa.');
+                    return;
+                }
+
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                        .then(function(stream) {
+                            scannerVideo.srcObject = stream;
+                            scannerVideo.play();
+                            scanFeedback.textContent = 'Scanner pronto!';
+                            // Qui si dovrebbe avviare la logica di scansione dei barcode reali
+                            // utilizzando html5-qrcode o un'altra libreria specifica per barcode.
+                            // Per questa demo, ci affidiamo alla simulazione
+                        })
+                        .catch(function(err) {
+                            console.error("Errore nell'accesso alla fotocamera per barcode:", err);
+                            scanFeedback.textContent = 'Errore: Impossibile accedere alla fotocamera.';
+                            showModal('Errore Fotocamera', 'Impossibile accedere alla fotocamera per lo scanner di barcode. Assicurati di aver concesso i permessi.');
+                        });
+                } else {
+                    scanFeedback.textContent = 'Il tuo browser non supporta l\'accesso alla fotocamera.';
+                    showModal('Browser non supportato', 'Il tuo browser non supporta l\'accesso alla fotocamera, necessario per lo scanner di barcode.');
+                }
+            }
+
+            function startBarcodeScanningSimulation() {
+                let productIndex = 0;
+                // Questi sono gli ID barcode che la cassa "conosce" (quelli salvati o predefiniti)
+                // L'ID deve corrispondere a quelli generati/salvati nella cassa
+                const demoBarcodes = [
+                    'BC-12345', // Latte Fresco (pre-registrato in cassa)
+                    'BC-67890', // Pane Integrale (pre-registrato in cassa)
+                    'BC-11223', // Mele Rosse (pre-registrato in cassa)
+                    'BC-44556', // Uova Biologiche (pre-registrato in cassa)
+                    'BC-78901', // Barcode di un prodotto NON registrato (verrà mostrato un messaggio di errore nella cassa)
+                    'BC-23456'  // Cioccolato Fondente (NON pre-registrato nell'array iniziale della cassa)
+                ];
+
+                clearInterval(simulatedScanInterval); // Pulisci intervalli precedenti per evitare doppioni
+                simulatedScanInterval = setInterval(() => {
+                    const barcode = demoBarcodes[productIndex % demoBarcodes.length];
+                    
+                    document.getElementById('scan-feedback').textContent = `Simulando scansione: ${barcode}`;
+                    document.getElementById('last-scanned').textContent = `Ultima scansione: ${barcode}`;
+
+                    // Invia il barcode alla cassa (simulato)
+                    // In un'app reale, questo invierebbe via WebSocket al server, che poi lo inoltrerebbe al tablet
+                    // ws.send(JSON.stringify({ type: 'scan', sessionId: sessionId, barcode: barcode }));
+                    // Per questa demo, chiamiamo direttamente la funzione del tablet se esiste
+                    if (window.addProductToCart) {
+                        window.addProductToCart(barcode);
+                    } else {
+                        console.warn("Funzione addProductToCart non disponibile. La cassa non è attiva o non ha caricato la funzione.");
+                        showModal('Errore di Connessione', 'La cassa non è raggiungibile. Assicurati che sia attiva e accoppiata.');
+                    }
+
+                    productIndex++;
+                }, 3000); // Scansiona un prodotto ogni 3 secondi
+            }
+
+            // --- FUNZIONI DI ACCOPPIAMENTO (QR CODE) ---
+
+            function displayQRCode(data) {
+                const qrCodeDisplayEl = document.getElementById('qr-code-display');
+                const qrCanvas = document.getElementById('qr-canvas');
+                const sessionIdDisplay = document.getElementById('session-id-display');
+
+                qrCodeDisplayEl.classList.remove('hidden');
+                sessionIdDisplay.textContent = data;
+
+                // Inizializza QRious per generare il QR code
+                // Il contenuto del QR code sarà l'ID di sessione
+                new QRious({
+                    element: qrCanvas,
+                    value: data,
+                    size: 200,
+                    padding: 10,
+                    background: 'white',
+                    foreground: 'black'
+                });
+            }
+
+            // --- GESTIONE MESSAGGI WEBSOCKET (SIMULATO) ---
+            // Questa funzione sarebbe usata se avessi un backend WebSocket.
+            // Per questa demo, lo scanner chiama direttamente addProductToCart sulla cassa.
+            function handleWebSocketMessage(message) {
+                const data = JSON.parse(message);
+                if (data.type === 'scannedProduct' && currentRole === 'cashier') {
+                    // Se la cassa riceve un messaggio di prodotto scansionato
+                    window.addProductToCart(data.barcode);
+                }
+                // Altre logiche di comunicazione
+            }
+        });
+    </script>
+</body>
+</html>
