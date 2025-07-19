@@ -531,6 +531,14 @@
                 return;
             }
 
+            // Ensure Firebase DB and userId are available before attempting to write
+            if (!db || !userId) {
+                updateMessage('registration-error', 'Errore di inizializzazione dell\'app. Riprova a caricare la pagina.', true);
+                setButtonLoading('registration-button', false, 'Continua');
+                console.error("Firebase DB or userId not available during registration attempt. DB:", db, "UserID:", userId);
+                return;
+            }
+
             try {
                 const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/userData/profile`);
                 const newUserData = {
@@ -545,7 +553,7 @@
                 userData = newUserData; // Update global state
                 showStep(3); // Directly move to pairing step
             } catch (err) {
-                console.error("Errore durante la registrazione:", err);
+                console.error("Errore durante la registrazione:", err); // Log the actual error object
                 updateMessage('registration-error', 'Errore durante la registrazione. Riprova.', true);
             } finally {
                 setButtonLoading('registration-button', false, 'Continua');
