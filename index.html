@@ -131,6 +131,11 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
 
+    <!-- Notification Container -->
+    <div id="app-notification" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 p-4 rounded-lg text-white text-center shadow-lg hidden transition-all duration-300 ease-in-out transform">
+        <!-- Notification message will go here -->
+    </div>
+
     <!-- Step 1: Registration -->
     <div id="registration-step" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Registrazione Utente</h2>
@@ -151,7 +156,7 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="telegram">@Telegram</label>
                 <input type="text" id="telegram" value="Francesco Notaro @sinook101010" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
             </div>
-            <p id="registration-error" class="text-red-500 text-sm text-center hidden"></p>
+            <!-- Removed registration-error paragraph -->
             <button type="submit" id="registration-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                 Continua
             </button>
@@ -186,7 +191,7 @@
                 </button>
             </form>
         </div>
-        <p id="pairing-message" class="mt-6 text-center text-blue-600 dark:text-blue-400 font-medium hidden"></p>
+        <!-- Removed pairing-message paragraph -->
         <p id="pairing-status" class="mt-4 text-center text-green-600 dark:text-green-400 font-bold hidden"></p>
     </div>
 
@@ -212,7 +217,7 @@
                     <textarea id="productContents" rows="3" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100" required></textarea>
                 </div>
                 <div class="md:col-span-2">
-                    <p id="add-product-message" class="text-blue-600 dark:text-blue-400 text-sm text-center mb-2 hidden"></p>
+                    <!-- Removed add-product-message paragraph -->
                     <button type="submit" id="add-product-button" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">
                         Aggiungi Prodotto
                     </button>
@@ -238,7 +243,7 @@
     </div>
 
     <!-- Step 4: Phone Main App -->
-    <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden">
+    <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden">
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Scanner Telefono</h2>
         <p id="phone-pairing-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
 
@@ -246,7 +251,7 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="barcodeScan">Scansiona Codice a Barre</label>
             <form id="barcode-scan-form" class="space-y-4">
                 <input type="text" id="barcodeScan" placeholder="Inserisci il codice a barre" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
-                <p id="barcode-scan-message" class="text-blue-600 dark:text-blue-400 text-sm text-center hidden"></p>
+                <!-- Removed barcode-scan-message paragraph -->
                 <button type="submit" id="barcode-scan-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                     Invia al Tablet
                 </button>
@@ -277,6 +282,7 @@
         let pairingData = null;
         let products = [];
         let hasGeneratedCodeForCurrentSession = false; // To prevent multiple code generations on tablet
+        let notificationTimeout; // For managing notification visibility
 
         // --- Utility Functions ---
 
@@ -289,6 +295,31 @@
         };
 
         // --- UI Management Functions ---
+
+        // New notification function
+        const showNotification = (message, type = 'info') => { // type can be 'success', 'error', 'info'
+            const notificationElement = document.getElementById('app-notification');
+            if (notificationElement) {
+                notificationElement.textContent = message;
+                notificationElement.classList.remove('hidden', 'bg-green-500', 'bg-red-500', 'bg-blue-500');
+                notificationElement.classList.add('flex', 'items-center', 'justify-center'); // Make it a flex container to center text
+
+                clearTimeout(notificationTimeout); // Clear any existing timeout
+
+                if (type === 'success') {
+                    notificationElement.classList.add('bg-green-500');
+                } else if (type === 'error') {
+                    notificationElement.classList.add('bg-red-500');
+                } else {
+                    notificationElement.classList.add('bg-blue-500'); // Default info color
+                }
+
+                // Hide after 3 seconds
+                notificationTimeout = setTimeout(() => {
+                    notificationElement.classList.add('hidden');
+                }, 3000);
+            }
+        };
 
         const showStep = (stepNumber) => {
             document.getElementById('registration-step').classList.add('hidden');
@@ -329,25 +360,9 @@
             }
         };
 
-        const updateMessage = (elementId, message, isError = false) => {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.textContent = message;
-                element.classList.remove('hidden', 'text-red-500', 'text-blue-600', 'text-green-600');
-                if (isError) {
-                    element.classList.add('text-red-500');
-                } else {
-                    element.classList.add('text-blue-600');
-                }
-            }
-        };
-
-        const hideMessage = (elementId) => {
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.classList.add('hidden');
-            }
-        };
+        // No longer need updateMessage or hideMessage as showNotification handles it
+        // const updateMessage = (elementId, message, isError = false) => { ... };
+        // const hideMessage = (elementId) => { ... };
 
         const setButtonLoading = (buttonId, isLoading, originalText) => {
             const button = document.getElementById(buttonId);
@@ -386,6 +401,7 @@
                         }
                     } catch (error) {
                         console.error("Firebase authentication failed:", error);
+                        showNotification('Errore di autenticazione Firebase. Riprova.', 'error');
                     }
                 }
             });
@@ -410,7 +426,10 @@
                     console.log("No user profile found, starting registration.");
                     showStep(1); // Ensure we are at registration if no profile
                 }
-            }, (error) => console.error("Error fetching user data:", error));
+            }, (error) => {
+                console.error("Error fetching user data:", error);
+                showNotification('Errore nel caricamento dei dati utente.', 'error');
+            });
         };
 
         const setupFirestoreListeners = () => {
@@ -432,16 +451,16 @@
                 console.log("Pairing data updated:", pairingData);
 
                 if (pairingData && pairingData.isPaired) {
-                    updateMessage('pairing-message', 'Dispositivi accoppiati con successo!', false);
+                    showNotification('Dispositivi accoppiati con successo!', 'success');
                     document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
                     document.getElementById('pairing-status').classList.remove('hidden');
                     setTimeout(() => showStep(4), 1500);
                 } else if (pairingData && !pairingData.isPaired && currentStep === 3) {
                     // Stay in pairing if not yet paired, but a session exists
-                    updateMessage('pairing-message', 'In attesa che l\'altro dispositivo si connetta.', false);
+                    showNotification('In attesa che l\'altro dispositivo si connetta.', 'info');
                 } else if (!pairingData && currentStep === 3) {
                     // If no pairing data and we are in pairing step (e.g., after regenerate)
-                    updateMessage('pairing-message', 'Generato nuovo codice. Inserisci sul telefono.', false);
+                    showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
                 }
 
                 // Update scanned product on tablet
@@ -457,12 +476,16 @@
                         `;
                     } else {
                         scannedProductDetailsDiv.innerHTML = `<p class="text-center">Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.</p>`;
+                        showNotification(`Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.`, 'error');
                     }
                 } else if (deviceType === 'tablet') {
                     document.getElementById('scanned-product-details').innerHTML = `<p class="text-center">In attesa di scansione dal telefono...</p>`;
                 }
 
-            }, (error) => console.error("Error fetching pairing data:", error));
+            }, (error) => {
+                console.error("Error fetching pairing data:", error);
+                showNotification('Errore nel caricamento dei dati di accoppiamento.', 'error');
+            });
 
             // Listen for product list changes (for tablet)
             if (deviceType === 'tablet') {
@@ -471,7 +494,10 @@
                     products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
                     console.log("Products updated:", products);
                     renderProductList();
-                }, (error) => console.error("Error fetching products:", error));
+                }, (error) => {
+                    console.error("Error fetching products:", error);
+                    showNotification('Errore nel caricamento della lista prodotti.', 'error');
+                });
             }
         };
 
@@ -517,7 +543,7 @@
         // Registration Form
         document.getElementById('registration-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            hideMessage('registration-error');
+            showNotification('', 'info'); // Clear any old notification
             setButtonLoading('registration-button', true, 'Continua');
 
             const name = document.getElementById('name').value;
@@ -526,14 +552,14 @@
             const telegram = document.getElementById('telegram').value;
 
             if (!name || !surname || !password || !telegram) {
-                updateMessage('registration-error', 'Tutti i campi sono obbligatori.', true);
+                showNotification('Tutti i campi sono obbligatori.', 'error');
                 setButtonLoading('registration-button', false, 'Continua');
                 return;
             }
 
             // Ensure Firebase DB and userId are available before attempting to write
             if (!db || !userId) {
-                updateMessage('registration-error', 'Errore di inizializzazione dell\'app. Riprova a caricare la pagina.', true);
+                showNotification('Errore di inizializzazione dell\'app. Riprova a caricare la pagina.', 'error');
                 setButtonLoading('registration-button', false, 'Continua');
                 console.error("Firebase DB or userId not available during registration attempt. DB:", db, "UserID:", userId);
                 return;
@@ -551,10 +577,11 @@
                 };
                 await setDoc(userDocRef, newUserData, { merge: true });
                 userData = newUserData; // Update global state
+                showNotification('Registrazione completata con successo!', 'success');
                 showStep(3); // Directly move to pairing step
             } catch (err) {
                 console.error("Errore durante la registrazione:", err); // Log the actual error object
-                updateMessage('registration-error', 'Errore durante la registrazione. Riprova.', true);
+                showNotification('Errore durante la registrazione. Riprova.', 'error');
             } finally {
                 setButtonLoading('registration-button', false, 'Continua');
             }
@@ -566,7 +593,7 @@
 
             // If already paired, no need to do anything with code generation.
             if (pairingData && pairingData.isPaired) {
-                updateMessage('pairing-message', 'Dispositivi accoppiati con successo!', false);
+                showNotification('Dispositivi accoppiati con successo!', 'success');
                 document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
                 document.getElementById('pairing-status').classList.remove('hidden');
                 return;
@@ -577,7 +604,7 @@
                 document.getElementById('pairing-code-display').querySelector('p').textContent = pairingData.pairingCode;
                 document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${pairingData.id}`;
                 pairingId = pairingData.id; // Update global pairingId
-                updateMessage('pairing-message', 'Codice esistente. Inserisci sul telefono.', false);
+                showNotification('Codice esistente. Inserisci sul telefono.', 'info');
                 hasGeneratedCodeForCurrentSession = true; // Mark as generated based on existing data
                 console.log("Reusing existing pairing code:", pairingData.pairingCode, "and pairingId:", pairingData.id);
             }
@@ -600,7 +627,7 @@
                     isPaired: false,
                     createdAt: new Date()
                 }, { merge: true });
-                updateMessage('pairing-message', 'Generato nuovo codice. Inserisci sul telefono.', false);
+                showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
                 setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
             }
         };
@@ -609,7 +636,7 @@
         document.getElementById('regenerate-code-button').addEventListener('click', async () => {
             if (!db || !userId) return;
             setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
-            hideMessage('pairing-message');
+            showNotification('', 'info'); // Clear any old notification
             document.getElementById('pairing-status').classList.add('hidden');
 
             // Clear local state to force new generation
@@ -623,13 +650,13 @@
         // Phone Scan Code Form
         document.getElementById('scan-code-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            hideMessage('pairing-message');
+            showNotification('', 'info'); // Clear any old notification
             setButtonLoading('scan-code-button', true, 'Accoppia Dispositivo');
 
             const scanInput = document.getElementById('scan-input').value;
 
             if (!scanInput || scanInput.length !== 6 || !/^\d{6}$/.test(scanInput)) {
-                updateMessage('pairing-message', 'Inserisci un codice di 6 cifre valido.', true);
+                showNotification('Inserisci un codice di 6 cifre valido.', 'error');
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
                 return;
             }
@@ -653,11 +680,11 @@
                 }, { merge: true });
                 pairingId = foundPairingDoc.id; // Update global pairingId
                 pairingData = { ...foundPairingDoc.data(), id: foundPairingDoc.id, phoneId: userId, isPaired: true, pairedAt: new Date() }; // Update global pairingData
-                updateMessage('pairing-message', 'Accoppiamento riuscito! Caricamento app...', false);
+                showNotification('Accoppiamento riuscito! Caricamento app...', 'success');
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
                 // The onSnapshot listener will catch the isPaired change and move to step 4
             } else {
-                updateMessage('pairing-message', 'Codice non valido o scaduto. Riprova.', true);
+                showNotification('Codice non valido o scaduto. Riprova.', 'error');
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
             }
         });
@@ -665,7 +692,7 @@
         // Add Product Form (Tablet)
         document.getElementById('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            hideMessage('add-product-message');
+            showNotification('', 'info'); // Clear any old notification
             setButtonLoading('add-product-button', true, 'Aggiungi Prodotto');
 
             const productName = document.getElementById('productName').value;
@@ -673,7 +700,7 @@
             const productContents = document.getElementById('productContents').value;
 
             if (!productName || !productCost || !productContents) {
-                updateMessage('add-product-message', 'Tutti i campi del prodotto sono obbligatori.', true);
+                showNotification('Tutti i campi del prodotto sono obbligatori.', 'error');
                 setButtonLoading('add-product-button', false, 'Aggiungi Prodotto');
                 return;
             }
@@ -687,13 +714,13 @@
                     barcode: newBarcode,
                     createdAt: new Date()
                 });
-                updateMessage('add-product-message', 'Prodotto aggiunto con successo!', false);
+                showNotification('Prodotto aggiunto con successo!', 'success');
                 document.getElementById('productName').value = '';
                 document.getElementById('productCost').value = '';
                 document.getElementById('productContents').value = '';
             } catch (err) {
                 console.error("Errore durante l'aggiunta del prodotto:", err);
-                updateMessage('add-product-message', "Errore durante l'aggiunta del prodotto.", true);
+                showNotification("Errore durante l'aggiunta del prodotto.", 'error');
             } finally {
                 setButtonLoading('add-product-button', false, 'Aggiungi Prodotto');
             }
@@ -702,19 +729,19 @@
         // Barcode Scan Form (Phone)
         document.getElementById('barcode-scan-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            hideMessage('barcode-scan-message');
+            showNotification('', 'info'); // Clear any old notification
             setButtonLoading('barcode-scan-button', true, 'Invia al Tablet');
 
             const scanInput = document.getElementById('barcodeScan').value;
 
             if (!scanInput) {
-                updateMessage('barcode-scan-message', 'Inserisci un codice a barre da scansionare.', true);
+                showNotification('Inserisci un codice a barre da scansionare.', 'error');
                 setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
                 return;
             }
 
             if (!pairingData || !pairingData.id || !pairingData.isPaired) {
-                updateMessage('barcode-scan-message', 'Errore: Il telefono non è accoppiato con un tablet.', true);
+                showNotification('Errore: Il telefono non è accoppiato con un tablet.', 'error');
                 setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
                 return;
             }
@@ -727,11 +754,11 @@
                     lastScannedAt: new Date(),
                     phoneId: userId // Ensure phoneId is set in pairing data
                 }, { merge: true });
-                updateMessage('barcode-scan-message', `Codice "${scanInput}" inviato al tablet.`, false);
+                showNotification(`Codice "${scanInput}" inviato al tablet.`, 'success');
                 document.getElementById('barcodeScan').value = ''; // Clear input after sending
             } catch (err) {
                 console.error("Errore durante l'invio del codice a barre:", err);
-                updateMessage('barcode-scan-message', "Errore durante l'invio del codice a barre.", true);
+                showNotification("Errore durante l'invio del codice a barre.", 'error');
             } finally {
                 setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
             }
