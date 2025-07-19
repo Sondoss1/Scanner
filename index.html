@@ -156,7 +156,6 @@
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="telegram">@Telegram</label>
                 <input type="text" id="telegram" value="Francesco Notaro @sinook101010" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
             </div>
-            <!-- Removed registration-error paragraph -->
             <button type="submit" id="registration-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
                 Continua
             </button>
@@ -191,7 +190,6 @@
                 </button>
             </form>
         </div>
-        <!-- Removed pairing-message paragraph -->
         <p id="pairing-status" class="mt-4 text-center text-green-600 dark:text-green-400 font-bold hidden"></p>
     </div>
 
@@ -217,7 +215,6 @@
                     <textarea id="productContents" rows="3" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100" required></textarea>
                 </div>
                 <div class="md:col-span-2">
-                    <!-- Removed add-product-message paragraph -->
                     <button type="submit" id="add-product-button" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">
                         Aggiungi Prodotto
                     </button>
@@ -243,7 +240,7 @@
     </div>
 
     <!-- Step 4: Phone Main App -->
-    <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden">
+    <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden">
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Scanner Telefono</h2>
         <p id="phone-pairing-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
 
@@ -251,7 +248,6 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="barcodeScan">Scansiona Codice a Barre</label>
             <form id="barcode-scan-form" class="space-y-4">
                 <input type="text" id="barcodeScan" placeholder="Inserisci il codice a barre" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
-                <!-- Removed barcode-scan-message paragraph -->
                 <button type="submit" id="barcode-scan-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
                     Invia al Tablet
                 </button>
@@ -259,35 +255,23 @@
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
+    <!-- Application Logic -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Global variables provided by the Canvas environment
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
         // --- Global State ---
-        let app;
-        let db;
-        let auth;
         let userId = null;
         let deviceType = 'unknown'; // 'phone' or 'tablet'
         let currentStep = 1;
         let userData = null;
         let pairingId = null;
-        let pairingData = null;
-        let products = [];
+        let pairingData = null; // Stores the active pairing session data
+        let products = []; // Stores products created on the tablet
         let hasGeneratedCodeForCurrentSession = false; // To prevent multiple code generations on tablet
         let notificationTimeout; // For managing notification visibility
 
         // --- Utility Functions ---
 
-        // Simple ID generator (replaces uuidv4)
-        const generateUniqueId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        // Simple ID generator (replaces uuidv4 or Firebase UIDs)
+        const generateUniqueId = () => crypto.randomUUID();
 
         // Function to generate a 6-digit numeric code
         const generateSixDigitCode = () => {
@@ -296,7 +280,7 @@
 
         // --- UI Management Functions ---
 
-        // New notification function
+        // Notification function
         const showNotification = (message, type = 'info') => { // type can be 'success', 'error', 'info'
             const notificationElement = document.getElementById('app-notification');
             if (notificationElement) {
@@ -360,10 +344,6 @@
             }
         };
 
-        // No longer need updateMessage or hideMessage as showNotification handles it
-        // const updateMessage = (elementId, message, isError = false) => { ... };
-        // const hideMessage = (elementId) => { ... };
-
         const setButtonLoading = (buttonId, isLoading, originalText) => {
             const button = document.getElementById(buttonId);
             if (button) {
@@ -372,133 +352,103 @@
             }
         };
 
-        // --- Firebase Initialization ---
-        const initializeFirebase = async () => {
-            if (Object.keys(firebaseConfig).length === 0) {
-                console.error("Firebase config is missing. Please ensure __firebase_config is provided.");
-                return;
+        // --- Data Management (Local Storage) ---
+        // Data will persist across page reloads on the same browser/device.
+        // It will NOT synchronize between different browsers or devices.
+
+        const LOCAL_STORAGE_KEY = 'supermarketApp_state';
+
+        const saveStateToLocalStorage = () => {
+            const stateToSave = {
+                userId,
+                userData,
+                pairingData,
+                products,
+                hasGeneratedCodeForCurrentSession
+            };
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+                console.log("State saved to Local Storage.");
+            } catch (e) {
+                console.error("Error saving to Local Storage:", e);
+                showNotification("Errore nel salvataggio dei dati locali.", 'error');
             }
+        };
 
-            app = initializeApp(firebaseConfig);
-            db = getFirestore(app);
-            auth = getAuth(app);
+        const loadStateFromLocalStorage = () => {
+            try {
+                const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (savedState) {
+                    const parsedState = JSON.parse(savedState);
+                    userId = parsedState.userId || generateUniqueId(); // Ensure userId is always set
+                    userData = parsedState.userData;
+                    pairingData = parsedState.pairingData;
+                    products = parsedState.products || [];
+                    hasGeneratedCodeForCurrentSession = parsedState.hasGeneratedCodeForCurrentSession || false;
+                    console.log("State loaded from Local Storage.");
 
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    userId = user.uid;
-                    console.log("Authenticated with UID:", userId);
-                    await loadUserData(); // Load user data after authentication
-                    setupFirestoreListeners(); // Set up listeners once authenticated
-                } else {
-                    console.log("No user signed in, attempting anonymous sign-in.");
-                    try {
-                        // This allows anyone to "register" by creating an anonymous Firebase account.
-                        // Their registration details (name, surname, etc.) are then stored against this anonymous UID.
-                        if (initialAuthToken) {
-                            await signInWithCustomToken(auth, initialAuthToken);
+                    // If user data exists and is registered, proceed to the appropriate step
+                    if (userData && userData.isRegistered) {
+                        if (pairingData && pairingData.isPaired) {
+                            showStep(4);
                         } else {
-                            await signInAnonymously(auth);
+                            showStep(3);
                         }
-                    } catch (error) {
-                        console.error("Firebase authentication failed:", error);
-                        showNotification('Errore di autenticazione Firebase. Riprova.', 'error');
-                    }
-                }
-            });
-        };
-
-        // --- Data Loading and Listeners ---
-        const loadUserData = async () => {
-            if (!db || !userId) return;
-            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/userData/profile`);
-            onSnapshot(userDocRef, (docSnap) => {
-                if (docSnap.exists()) {
-                    userData = docSnap.data();
-                    console.log("User data loaded:", userData);
-                    // Progress through steps based on loaded user data
-                    if (userData.isRegistered && currentStep < 3) {
-                        showStep(3); // Move to pairing if registered
-                    }
-                    if (userData.isPaired && currentStep < 4) {
-                        showStep(4); // Move to main app if paired
-                    }
-                } else {
-                    console.log("No user profile found, starting registration.");
-                    showStep(1); // Ensure we are at registration if no profile
-                }
-            }, (error) => {
-                console.error("Error fetching user data:", error);
-                showNotification('Errore nel caricamento dei dati utente.', 'error');
-            });
-        };
-
-        const setupFirestoreListeners = () => {
-            if (!db || !userId) return;
-
-            // Listen for pairing data
-            const pairingColRef = collection(db, `artifacts/${appId}/public/data/pairings`);
-            onSnapshot(pairingColRef, (snapshot) => {
-                let foundPairing = null;
-                snapshot.forEach(d => {
-                    const data = d.data();
-                    if (deviceType === 'tablet' && data.tabletId === userId) {
-                        foundPairing = { id: d.id, ...data };
-                    } else if (deviceType === 'phone' && data.phoneId === userId) {
-                        foundPairing = { id: d.id, ...data };
-                    }
-                });
-                pairingData = foundPairing;
-                console.log("Pairing data updated:", pairingData);
-
-                if (pairingData && pairingData.isPaired) {
-                    showNotification('Dispositivi accoppiati con successo!', 'success');
-                    document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
-                    document.getElementById('pairing-status').classList.remove('hidden');
-                    setTimeout(() => showStep(4), 1500);
-                } else if (pairingData && !pairingData.isPaired && currentStep === 3) {
-                    // Stay in pairing if not yet paired, but a session exists
-                    showNotification('In attesa che l\'altro dispositivo si connetta.', 'info');
-                } else if (!pairingData && currentStep === 3) {
-                    // If no pairing data and we are in pairing step (e.g., after regenerate)
-                    showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
-                }
-
-                // Update scanned product on tablet
-                if (deviceType === 'tablet' && pairingData && pairingData.scannedProductId) {
-                    const foundProduct = products.find(p => p.barcode === pairingData.scannedProductId);
-                    const scannedProductDetailsDiv = document.getElementById('scanned-product-details');
-                    if (foundProduct) {
-                        scannedProductDetailsDiv.innerHTML = `
-                            <p><span class="font-medium">Nome:</span> ${foundProduct.name}</p>
-                            <p><span class="font-medium">Costo:</span> €${foundProduct.cost.toFixed(2)}</p>
-                            <p><span class="font-medium">Contenuto:</span> ${foundProduct.contents}</p>
-                            <p><span class="font-medium">Codice a Barre:</span> ${foundProduct.barcode}</p>
-                        `;
                     } else {
-                        scannedProductDetailsDiv.innerHTML = `<p class="text-center">Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.</p>`;
-                        showNotification(`Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.`, 'error');
+                        showStep(1); // Start fresh if no valid user data
                     }
-                } else if (deviceType === 'tablet') {
-                    document.getElementById('scanned-product-details').innerHTML = `<p class="text-center">In attesa di scansione dal telefono...</p>`;
+                    renderProductList(); // Re-render products after loading
+                    return true; // State was loaded
                 }
-
-            }, (error) => {
-                console.error("Error fetching pairing data:", error);
-                showNotification('Errore nel caricamento dei dati di accoppiamento.', 'error');
-            });
-
-            // Listen for product list changes (for tablet)
-            if (deviceType === 'tablet') {
-                const productsColRef = collection(db, `artifacts/${appId}/public/data/products`);
-                onSnapshot(productsColRef, (snapshot) => {
-                    products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                    console.log("Products updated:", products);
-                    renderProductList();
-                }, (error) => {
-                    console.error("Error fetching products:", error);
-                    showNotification('Errore nel caricamento della lista prodotti.', 'error');
-                });
+            } catch (e) {
+                console.error("Error loading from Local Storage:", e);
+                showNotification("Errore nel caricamento dei dati locali.", 'error');
             }
+            return false; // State was not loaded
+        };
+
+        const updatePairingDataLocally = (newData) => {
+            pairingData = { ...pairingData, ...newData };
+            saveStateToLocalStorage(); // Save state after updating pairing data
+            console.log("Pairing data updated (local storage):", pairingData);
+
+            // Simulate onSnapshot listener for pairing data
+            if (pairingData && pairingData.isPaired) {
+                showNotification('Dispositivi accoppiati con successo!', 'success');
+                document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
+                document.getElementById('pairing-status').classList.remove('hidden');
+                setTimeout(() => showStep(4), 1500);
+            } else if (pairingData && !pairingData.isPaired && currentStep === 3) {
+                showNotification('In attesa che l\'altro dispositivo si connetta.', 'info');
+            } else if (!pairingData && currentStep === 3) {
+                showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
+            }
+
+            // Update scanned product on tablet (if this instance is a tablet)
+            if (deviceType === 'tablet' && pairingData && pairingData.scannedProductId) {
+                const foundProduct = products.find(p => p.barcode === pairingData.scannedProductId);
+                const scannedProductDetailsDiv = document.getElementById('scanned-product-details');
+                if (foundProduct) {
+                    scannedProductDetailsDiv.innerHTML = `
+                        <p><span class="font-medium">Nome:</span> ${foundProduct.name}</p>
+                        <p><span class="font-medium">Costo:</span> €${foundProduct.cost.toFixed(2)}</p>
+                        <p><span class="font-medium">Contenuto:</span> ${foundProduct.contents}</p>
+                        <p><span class="font-medium">Codice a Barre:</span> ${foundProduct.barcode}</p>
+                    `;
+                } else {
+                    scannedProductDetailsDiv.innerHTML = `<p class="text-center">Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.</p>`;
+                    showNotification(`Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.`, 'error');
+                }
+            } else if (deviceType === 'tablet') {
+                document.getElementById('scanned-product-details').innerHTML = `<p class="text-center">In attesa di scansione dal telefono...</p>`;
+            }
+        };
+
+        const addProductLocally = (newProduct) => {
+            products.push(newProduct);
+            saveStateToLocalStorage(); // Save state after adding product
+            console.log("Products updated (local storage):", products);
+            renderProductList();
         };
 
         const renderProductList = () => {
@@ -548,7 +498,7 @@
 
             const name = document.getElementById('name').value;
             const surname = document.getElementById('surname').value;
-            const password = document.getElementById('password').value; // In real app, hash this!
+            const password = document.getElementById('password').value;
             const telegram = document.getElementById('telegram').value;
 
             if (!name || !surname || !password || !telegram) {
@@ -557,40 +507,24 @@
                 return;
             }
 
-            // Ensure Firebase DB and userId are available before attempting to write
-            if (!db || !userId) {
-                showNotification('Errore di inizializzazione dell\'app. Riprova a caricare la pagina.', 'error');
-                setButtonLoading('registration-button', false, 'Continua');
-                console.error("Firebase DB or userId not available during registration attempt. DB:", db, "UserID:", userId);
-                return;
-            }
-
-            try {
-                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/userData/profile`);
-                const newUserData = {
-                    name,
-                    surname,
-                    password,
-                    telegram,
-                    isRegistered: true,
-                    createdAt: new Date()
-                };
-                await setDoc(userDocRef, newUserData, { merge: true });
-                userData = newUserData; // Update global state
-                showNotification('Registrazione completata con successo!', 'success');
-                showStep(3); // Directly move to pairing step
-            } catch (err) {
-                console.error("Errore durante la registrazione:", err); // Log the actual error object
-                showNotification('Errore durante la registrazione. Riprova.', 'error');
-            } finally {
-                setButtonLoading('registration-button', false, 'Continua');
-            }
+            // Simulate user data storage
+            userData = {
+                id: userId, // Use the generated userId for the user profile
+                name,
+                surname,
+                password, // In a real app, hash this!
+                telegram,
+                isRegistered: true,
+                createdAt: new Date()
+            };
+            saveStateToLocalStorage(); // Save state after registration
+            showNotification('Registrazione completata con successo!', 'success');
+            showStep(3); // Directly move to pairing step
+            setButtonLoading('registration-button', false, 'Continua');
         });
 
         // Tablet Code Generation Logic (called by showStep(3) for tablet)
         const handleTabletCodeGeneration = async () => {
-            if (!db || !userId) return;
-
             // If already paired, no need to do anything with code generation.
             if (pairingData && pairingData.isPaired) {
                 showNotification('Dispositivi accoppiati con successo!', 'success');
@@ -600,6 +534,7 @@
             }
 
             // If there's existing UNPAIRED pairing data for THIS tablet, reuse its code value.
+            // In this local simulation, we just check if pairingData exists and is for this device.
             if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired) {
                 document.getElementById('pairing-code-display').querySelector('p').textContent = pairingData.pairingCode;
                 document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${pairingData.id}`;
@@ -620,13 +555,15 @@
                 hasGeneratedCodeForCurrentSession = true; // Mark that we've generated one
                 console.log("Generated new pairing code:", newPairingCode, "and new pairingId:", newPairingId);
 
-                const pairingDocRef = doc(db, `artifacts/${appId}/public/data/pairings`, newPairingId);
-                await setDoc(pairingDocRef, {
+                // Store pairing data locally
+                pairingData = {
+                    id: newPairingId,
                     tabletId: userId,
                     pairingCode: newPairingCode, // Store the 6-digit code
                     isPaired: false,
                     createdAt: new Date()
-                }, { merge: true });
+                };
+                saveStateToLocalStorage(); // Save state after generating code
                 showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
                 setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
             }
@@ -634,7 +571,6 @@
 
         // Regenerate Code Button
         document.getElementById('regenerate-code-button').addEventListener('click', async () => {
-            if (!db || !userId) return;
             setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
             showNotification('', 'info'); // Clear any old notification
             document.getElementById('pairing-status').classList.add('hidden');
@@ -661,28 +597,19 @@
                 return;
             }
 
-            // Find the pairing document by scanned code value
-            const q = collection(db, `artifacts/${appId}/public/data/pairings`);
-            const snapshot = await getDocs(q);
-            let foundPairingDoc = null;
-            snapshot.forEach(d => {
-                if (d.data().pairingCode === scanInput) { // Check against pairingCode
-                    foundPairingDoc = d;
-                }
-            });
-
-            if (foundPairingDoc) {
-                const pairingDocRef = doc(db, `artifacts/${appId}/public/data/pairings`, foundPairingDoc.id);
-                await setDoc(pairingDocRef, {
+            // Simulate finding pairing data by scanned code value locally
+            // This assumes the tablet and phone are running in the same browser session
+            // and the tablet has already generated a pairing code.
+            if (pairingData && pairingData.pairingCode === scanInput && !pairingData.isPaired) {
+                // Update local pairing data to mark as paired
+                updatePairingDataLocally({
                     phoneId: userId,
                     isPaired: true,
                     pairedAt: new Date()
-                }, { merge: true });
-                pairingId = foundPairingDoc.id; // Update global pairingId
-                pairingData = { ...foundPairingDoc.data(), id: foundPairingDoc.id, phoneId: userId, isPaired: true, pairedAt: new Date() }; // Update global pairingData
+                });
                 showNotification('Accoppiamento riuscito! Caricamento app...', 'success');
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
-                // The onSnapshot listener will catch the isPaired change and move to step 4
+                // The updatePairingDataLocally function will trigger showStep(4)
             } else {
                 showNotification('Codice non valido o scaduto. Riprova.', 'error');
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
@@ -706,24 +633,20 @@
             }
 
             const newBarcode = generateUniqueId().substring(0, 12).toUpperCase(); // Simulate a barcode
-            try {
-                await addDoc(collection(db, `artifacts/${appId}/public/data/products`), {
-                    name: productName,
-                    cost: parseFloat(productCost),
-                    contents: productContents,
-                    barcode: newBarcode,
-                    createdAt: new Date()
-                });
-                showNotification('Prodotto aggiunto con successo!', 'success');
-                document.getElementById('productName').value = '';
-                document.getElementById('productCost').value = '';
-                document.getElementById('productContents').value = '';
-            } catch (err) {
-                console.error("Errore durante l'aggiunta del prodotto:", err);
-                showNotification("Errore durante l'aggiunta del prodotto.", 'error');
-            } finally {
-                setButtonLoading('add-product-button', false, 'Aggiungi Prodotto');
-            }
+            const newProduct = {
+                id: generateUniqueId(), // Local ID for the product
+                name: productName,
+                cost: parseFloat(productCost),
+                contents: productContents,
+                barcode: newBarcode,
+                createdAt: new Date()
+            };
+            addProductLocally(newProduct); // Add to local products array
+            showNotification('Prodotto aggiunto con successo!', 'success');
+            document.getElementById('productName').value = '';
+            document.getElementById('productCost').value = '';
+            document.getElementById('productContents').value = '';
+            setButtonLoading('add-product-button', false, 'Aggiungi Prodotto');
         });
 
         // Barcode Scan Form (Phone)
@@ -746,22 +669,15 @@
                 return;
             }
 
-            try {
-                // Update the pairing document with the scanned product ID
-                const pairingDocRef = doc(db, `artifacts/${appId}/public/data/pairings`, pairingData.id);
-                await setDoc(pairingDocRef, {
-                    scannedProductId: scanInput,
-                    lastScannedAt: new Date(),
-                    phoneId: userId // Ensure phoneId is set in pairing data
-                }, { merge: true });
-                showNotification(`Codice "${scanInput}" inviato al tablet.`, 'success');
-                document.getElementById('barcodeScan').value = ''; // Clear input after sending
-            } catch (err) {
-                console.error("Errore durante l'invio del codice a barre:", err);
-                showNotification("Errore durante l'invio del codice a barre.", 'error');
-            } finally {
-                setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
-            }
+            // Update the local pairingData with the scanned product ID
+            updatePairingDataLocally({
+                scannedProductId: scanInput,
+                lastScannedAt: new Date(),
+                phoneId: userId
+            });
+            showNotification(`Codice "${scanInput}" inviato al tablet.`, 'success');
+            document.getElementById('barcodeScan').value = ''; // Clear input after sending
+            setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
         });
 
 
@@ -776,8 +692,13 @@
             }
             console.log("Device Type Detected:", deviceType);
 
-            // Initialize Firebase and start the app flow
-            initializeFirebase();
+            // Try to load state from local storage. If not found, initialize new session.
+            const stateLoaded = loadStateFromLocalStorage();
+            if (!stateLoaded) {
+                userId = generateUniqueId(); // Generate new userId only if no state was loaded
+                console.log("New Session - Simulated User ID:", userId);
+                showStep(1); // Start at registration for new session
+            }
         };
 
     </script>
