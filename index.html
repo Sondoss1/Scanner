@@ -3,626 +3,747 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scan & Pay - Cassa & Scanner</title>
-    <!-- Tailwind CSS CDN per uno styling rapido e responsivo -->
+    <title>App Cassa Supermercato</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Stili personalizzati per il font Inter e per sovrascrivere Tailwind se necessario */
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Sfondo grigio chiaro */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
+            padding: 0;
+            background-color: #f3f4f6; /* Light gray background */
+            color: #1f2937; /* Dark gray text */
         }
-
-        /* Stili per il container principale dell'app */
-        .app-container {
+        .dark body {
+            background-color: #111827; /* Dark background */
+            color: #f9fafb; /* Light text */
+        }
+        /* General styling for rounded corners */
+        .rounded-lg {
+            border-radius: 0.5rem;
+        }
+        .shadow-xl {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .border {
+            border-width: 1px;
+        }
+        .border-gray-200 {
+            border-color: #e5e7eb;
+        }
+        .dark .border-gray-700 {
+            border-color: #374151;
+        }
+        .bg-white {
             background-color: #ffffff;
-            border-radius: 1.5rem; /* Bordi arrotondati */
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            padding: 2.5rem;
-            text-align: center;
-            max-width: 900px; /* Larghezza massima per tablet */
-            width: 100%;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
         }
-
-        /* Stili per i pulsanti */
-        button {
-            @apply bg-blue-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105;
+        .dark .bg-gray-800 {
+            background-color: #1f2937;
         }
-
-        /* Stili per gli input */
-        input[type="text"], input[type="number"] {
-            @apply p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full;
-        }
-
-        /* Stili per le liste */
-        ul {
-            @apply list-none p-0 m-0;
-        }
-
-        li {
-            @apply flex justify-between items-center bg-gray-50 p-3 rounded-lg mb-2 shadow-sm;
-        }
-
-        /* Stili per l'area dello scanner video */
-        #scanner-video {
-            width: 100%;
-            height: 100%; /* Copre l'intera area del div padre */
-            background-color: #000;
-            border-radius: 1rem;
-            object-fit: cover; /* Assicura che il video riempia l'area */
-        }
-
-        /* Stili per l'area QR Code */
-        #qr-code-area {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 1.5rem;
+        .bg-gray-50 {
             background-color: #f9fafb;
-            border-radius: 1rem;
-            margin-top: 1.5rem;
         }
-
-        /* Stili per l'area dello scanner QR (html5-qrcode) */
-        #reader {
-            width: 100%;
-            max-width: 500px; /* Limita la larghezza dello scanner QR */
-            margin: 0 auto;
-            border: 2px solid #e0e0e0;
-            border-radius: 1rem;
-            overflow: hidden; /* Nasconde eventuali bordi extra del video */
-            position: relative; /* Necessario per il posizionamento assoluto degli elementi figli */
+        .dark .bg-gray-700 {
+            background-color: #374151;
         }
-        /* Nasconde i pulsanti di controllo di html5-qrcode */
-        #reader__dashboard {
-            display: none !important; 
+        .bg-blue-50 {
+            background-color: #eff6ff;
         }
-        #reader__scan_region {
-            border-radius: 1rem; /* Assicura bordi arrotondati anche per l'area di scansione */
+        .dark .bg-blue-900 {
+            background-color: #1e3a8a;
         }
-        
-        /* Stili specifici per l'area dello scanner barcode */
-        #barcode-scanner-area {
-            position: relative;
-            background-color: #000;
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden; /* Per contenere il video all'interno dei bordi arrotondati */
+        .text-gray-900 {
+            color: #1f2937;
         }
-
-        /* Responsive adjustments */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .app-container {
-                padding: 1.5rem;
-                border-radius: 1rem;
-            }
-            .tablet-layout .md\:flex-row-reverse {
-                flex-direction: column; /* Impila le colonne su schermi più piccoli */
-            }
-            .tablet-layout .md\:w-2\/3, .tablet-layout .md\:w-1\/3 {
-                width: 100%; /* Occupano tutta la larghezza */
-            }
-            .tablet-layout .p-6 {
-                padding: 1rem;
-            }
+        .dark .text-gray-100 {
+            color: #f9fafb;
         }
+        .text-gray-700 {
+            color: #374151;
+        }
+        .dark .text-gray-300 {
+            color: #d1d5db;
+        }
+        .text-blue-500 {
+            color: #3b82f6;
+        }
+        .dark .text-blue-400 {
+            color: #60a5fa;
+        }
+        .text-red-500 {
+            color: #ef4444;
+        }
+        .dark .text-red-400 {
+            color: #f87171;
+        }
+        .text-green-600 {
+            color: #16a34a;
+        }
+        .dark .text-green-400 {
+            color: #4ade80;
+        }
+        .text-purple-600 {
+            color: #9333ea;
+        }
+        .dark .text-purple-300 {
+            color: #c084fc;
+        }
+        .text-indigo-600 {
+            color: #4f46e5;
+        }
+        .dark .text-indigo-400 {
+            color: #818cf8;
+        }
+        .focus\:ring-blue-500:focus {
+            --tw-ring-color: #3b82f6;
+        }
+        .focus\:border-blue-500:focus {
+            border-color: #3b82f6;
+        }
+        .focus\:ring-green-500:focus {
+            --tw-ring-color: #22c55e;
+        }
+        .focus\:ring-indigo-500:focus {
+            --tw-ring-color: #6366f1;
+        }
+        .focus\:ring-purple-500:focus {
+            --tw-ring-color: #a855f7;
+        }
+        /* Custom button styles */
+        button {
+            transition: all 0.3s ease-in-out;
+            border-radius: 0.375rem; /* rounded-md */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        button.bg-blue-600:hover { background-color: #2563eb; }
+        button.bg-green-600:hover { background-color: #15803d; }
+        button.bg-indigo-600:hover { background-color: #4338ca; }
+        button.bg-purple-600:hover { background-color: #7e22ce; }
+        button.bg-gray-200:hover { background-color: #d1d5db; }
+        .dark button.bg-gray-700:hover { background-color: #4b5563; }
     </style>
 </head>
-<body>
-    <div id="app" class="app-container">
-        <h1 class="text-4xl font-extrabold text-blue-700 mb-4">Scan & Pay</h1>
-        <p id="device-info" class="text-lg text-gray-700 mb-6">Rilevamento dispositivo in corso...</p>
+<body class="min-h-screen flex items-center justify-center p-4">
 
-        <!-- Area per la scelta del ruolo iniziale -->
-        <div id="role-selection" class="flex flex-col md:flex-row gap-6 justify-center">
-            <button id="btn-is-cashier" class="flex-1">Sono una Cassa (Tablet)</button>
-            <button id="btn-is-scanner" class="flex-1">Sono uno Scanner (Smartphone)</button>
+    <!-- Step 1: Registration -->
+    <div id="registration-step" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Registrazione Utente</h2>
+        <form id="registration-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="name">Nome</label>
+                <input type="text" id="name" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="surname">Cognome</label>
+                <input type="text" id="surname" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="password">Password</label>
+                <input type="password" id="password" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="telegram">@Telegram</label>
+                <input type="text" id="telegram" value="Francesco Notaro @sinook101010" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
+            </div>
+            <p id="registration-error" class="text-red-500 text-sm text-center hidden"></p>
+            <button type="submit" id="registration-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                Continua
+            </button>
+        </form>
+    </div>
+
+    <!-- Step 3: Device Pairing -->
+    <div id="pairing-step" class="w-full max-w-xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Accoppiamento Dispositivi</h2>
+
+        <div id="tablet-pairing-ui" class="flex flex-col items-center w-full hidden">
+            <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
+                Inserisci questo codice sul tuo telefono:
+            </p>
+            <div id="pairing-code-display" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-inner mb-4">
+                <p class="text-5xl font-bold text-blue-600 dark:text-blue-400">000000</p>
+            </div>
+            <p id="pairing-id-display" class="mt-4 text-sm text-gray-500 dark:text-gray-400">ID Accoppiamento: N/A</p>
+            <button id="regenerate-code-button" class="mt-6 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+                Rigenera Codice
+            </button>
         </div>
 
-        <!-- Contenuto dinamico caricato via JavaScript -->
-        <div id="content-area" class="hidden">
-            <!-- Qui verrà iniettato il layout specifico (cassa o scanner) -->
+        <div id="phone-pairing-ui" class="flex flex-col items-center w-full hidden">
+            <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
+                Inserisci il codice di 6 cifre visualizzato sul tablet:
+            </p>
+            <form id="scan-code-form" class="w-full flex flex-col items-center space-y-4">
+                <input type="text" id="scan-input" placeholder="Codice di 6 cifre" maxlength="6" pattern="\d{6}" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
+                <button type="submit" id="scan-code-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
+                    Accoppia Dispositivo
+                </button>
+            </form>
+        </div>
+        <p id="pairing-message" class="mt-6 text-center text-blue-600 dark:text-blue-400 font-medium hidden"></p>
+        <p id="pairing-status" class="mt-4 text-center text-green-600 dark:text-green-400 font-bold hidden"></p>
+    </div>
+
+    <!-- Step 4: Tablet Main App -->
+    <div id="tablet-app" class="w-full max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden">
+        <h2 class="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-gray-100">Cassa Supermercato (Tablet)</h2>
+        <p id="tablet-pairing-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
+
+        <!-- Product Creation Form -->
+        <div class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg shadow-inner">
+            <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Crea Nuovo Prodotto</h3>
+            <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="productName">Nome Prodotto</label>
+                    <input type="text" id="productName" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="productCost">Costo (€)</label>
+                    <input type="number" id="productCost" step="0.01" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100" required>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="productContents">Contenuto / Descrizione</label>
+                    <textarea id="productContents" rows="3" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100" required></textarea>
+                </div>
+                <div class="md:col-span-2">
+                    <p id="add-product-message" class="text-blue-600 dark:text-blue-400 text-sm text-center mb-2 hidden"></p>
+                    <button type="submit" id="add-product-button" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">
+                        Aggiungi Prodotto
+                    </button>
+                </div>
+            </form>
         </div>
 
-        <!-- Modale per messaggi (sostituisce alert()) -->
-        <div id="message-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 flex items-center justify-center z-50 hidden">
-            <div class="bg-white p-8 rounded-xl shadow-2xl max-w-sm w-full text-center">
-                <h3 id="modal-title" class="text-2xl font-bold mb-4 text-gray-800"></h3>
-                <p id="modal-message" class="text-gray-600 mb-6"></p>
-                <button id="modal-close-btn">OK</button>
+        <!-- Scanned Product Display -->
+        <div class="mb-8 p-6 bg-blue-50 dark:bg-blue-900 rounded-lg shadow-md border border-blue-200 dark:border-blue-700">
+            <h3 class="text-xl font-semibold mb-4 text-blue-800 dark:text-blue-200">Prodotto Scansionato</h3>
+            <div id="scanned-product-details" class="space-y-2 text-blue-700 dark:text-blue-300">
+                <p class="text-center">In attesa di scansione dal telefono...</p>
+            </div>
+        </div>
+
+        <!-- Product List -->
+        <div>
+            <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Prodotti Registrati</h3>
+            <div id="product-list-container" class="overflow-x-auto">
+                <p class="text-center text-gray-700 dark:text-gray-300">Nessun prodotto registrato.</p>
             </div>
         </div>
     </div>
 
-    <!-- Librerie JavaScript esterne, caricate prima dello script principale -->
-    <!-- Libreria per la generazione di QR Code -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
-    <!-- Libreria per la scansione di QR e Barcode -->
-    <script src="https://unpkg.com/html5-qrcode/minified/html5-qrcode.min.js"></script>
+    <!-- Step 4: Phone Main App -->
+    <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Scanner Telefono</h2>
+        <p id="phone-pairing-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
 
-    <script>
-        // Funzione per mostrare il modale personalizzato
-        function showModal(title, message) {
-            document.getElementById('modal-title').textContent = title;
-            document.getElementById('modal-message').textContent = message;
-            document.getElementById('message-modal').classList.remove('hidden');
-        }
+        <div class="w-full">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="barcodeScan">Scansiona Codice a Barre</label>
+            <form id="barcode-scan-form" class="space-y-4">
+                <input type="text" id="barcodeScan" placeholder="Inserisci il codice a barre" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
+                <p id="barcode-scan-message" class="text-blue-600 dark:text-blue-400 text-sm text-center hidden"></p>
+                <button type="submit" id="barcode-scan-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                    Invia al Tablet
+                </button>
+            </form>
+        </div>
+    </div>
 
-        // Event listener per chiudere il modale
-        document.getElementById('modal-close-btn').addEventListener('click', () => {
-            document.getElementById('message-modal').classList.add('hidden');
-        });
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const deviceInfoEl = document.getElementById('device-info');
-            const roleSelectionEl = document.getElementById('role-selection');
-            const contentAreaEl = document.getElementById('content-area');
-            const btnIsCashier = document.getElementById('btn-is-cashier');
-            const btnIsScanner = document.getElementById('btn-is-scanner');
+        // Global variables provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
-            let currentRole = null; // 'cashier' or 'scanner'
-            let sessionId = null; // ID univoco per l'accoppiamento
-            let ws = null; // Variabile per la connessione WebSocket (concettuale)
-            let html5QrCode = null; // Istanza dello scanner QR per html5-qrcode
+        // --- Global State ---
+        let app;
+        let db;
+        let auth;
+        let userId = null;
+        let deviceType = 'unknown'; // 'phone' or 'tablet'
+        let currentStep = 1;
+        let userData = null;
+        let pairingId = null;
+        let pairingData = null;
+        let products = [];
+        let hasGeneratedCodeForCurrentSession = false; // To prevent multiple code generations on tablet
 
-            // --- FUNZIONI DI RILEVAMENTO DISPOSITIVO E SCELTA RUOLO ---
+        // --- Utility Functions ---
 
-            // Funzione euristica per rilevare il tipo di dispositivo
-            function detectDeviceType() {
-                const userAgent = navigator.userAgent.toLowerCase();
-                const screenWidth = window.innerWidth;
-                
-                const isMobileUA = userAgent.includes('mobile') || userAgent.includes('android') || userAgent.includes('iphone') || userAgent.includes('ipod');
-                const isTabletUA = userAgent.includes('ipad') || (userAgent.includes('android') && !isMobileUA && screenWidth > 600); // Android tablet ma non phone
-                
-                if (isTabletUA || (screenWidth > 768 && !isMobileUA)) {
-                    return 'tablet';
-                } else if (isMobileUA || screenWidth <= 768) {
-                    return 'phone';
-                }
-                return 'unknown';
+        // Simple ID generator (replaces uuidv4)
+        const generateUniqueId = () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+        // Function to generate a 6-digit numeric code
+        const generateSixDigitCode = () => {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        };
+
+        // --- UI Management Functions ---
+
+        const showStep = (stepNumber) => {
+            document.getElementById('registration-step').classList.add('hidden');
+            // Removed telegram-code-step
+            document.getElementById('pairing-step').classList.add('hidden');
+            document.getElementById('tablet-app').classList.add('hidden');
+            document.getElementById('phone-app').classList.add('hidden');
+
+            currentStep = stepNumber;
+
+            switch (stepNumber) {
+                case 1:
+                    document.getElementById('registration-step').classList.remove('hidden');
+                    break;
+                case 3: // Directly move to pairing after registration
+                    document.getElementById('pairing-step').classList.remove('hidden');
+                    // Show/hide specific UI based on device type
+                    if (deviceType === 'tablet') {
+                        document.getElementById('tablet-pairing-ui').classList.remove('hidden');
+                        document.getElementById('phone-pairing-ui').classList.add('hidden');
+                        // Ensure pairing code is generated/displayed when entering this step
+                        handleTabletCodeGeneration();
+                    } else {
+                        document.getElementById('tablet-pairing-ui').classList.add('hidden');
+                        document.getElementById('phone-pairing-ui').classList.remove('hidden');
+                    }
+                    break;
+                case 4:
+                    if (deviceType === 'tablet') {
+                        document.getElementById('tablet-app').classList.remove('hidden');
+                        document.getElementById('tablet-pairing-status').textContent = `Dispositivo accoppiato. ID Sessione: ${pairingData ? pairingData.id : 'N/A'}`;
+                        document.getElementById('tablet-pairing-status').classList.remove('hidden');
+                    } else {
+                        document.getElementById('phone-app').classList.remove('hidden');
+                        document.getElementById('phone-pairing-status').textContent = `Dispositivo accoppiato. ID Sessione: ${pairingData ? pairingData.id : 'N/A'}`;
+                        document.getElementById('phone-pairing-status').classList.remove('hidden');
+                    }
+                    break;
             }
+        };
 
-            const detectedDevice = detectDeviceType();
-            deviceInfoEl.textContent = `Dispositivo rilevato: ${detectedDevice.toUpperCase()}. Scegli il tuo ruolo:`;
-
-            // Gestione della scelta del ruolo
-            btnIsCashier.addEventListener('click', () => setRole('cashier'));
-            btnIsScanner.addEventListener('click', () => setRole('scanner'));
-
-            function setRole(role) {
-                currentRole = role;
-                roleSelectionEl.classList.add('hidden'); // Nasconde la selezione del ruolo
-                contentAreaEl.classList.remove('hidden'); // Mostra l'area dei contenuti
-
-                if (currentRole === 'cashier') {
-                    renderCashierUI();
-                    // Genera un ID di sessione univoco per la cassa
-                    sessionId = crypto.randomUUID();
-                    // Mostra il QR code per l'accoppiamento
-                    displayQRCode(sessionId);
-                    deviceInfoEl.textContent = `Sei in modalità CASSA (Tablet). Scansiona il QR per accoppiare uno scanner.`;
+        const updateMessage = (elementId, message, isError = false) => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.classList.remove('hidden', 'text-red-500', 'text-blue-600', 'text-green-600');
+                if (isError) {
+                    element.classList.add('text-red-500');
                 } else {
-                    deviceInfoEl.textContent = `Sei in modalità SCANNER (Smartphone). Scansiona il QR del tablet cassa.`;
-                    renderQRCodeScannerUI(); // Mostra prima lo scanner QR per l'accoppiamento
-                    initQRCodeScanner(); // Avvia lo scanner QR
+                    element.classList.add('text-blue-600');
                 }
-                // Inizializza la connessione WebSocket (simulata qui)
-                // In un'applicazione reale, l'URL del WebSocket sarebbe un endpoint del tuo server
-                // ws = new WebSocket('ws://localhost:8080'); // Esempio: URL del tuo server WebSocket
-                // ws.onopen = () => console.log('WebSocket connesso');
-                // ws.onmessage = (event) => handleWebSocketMessage(event.data);
-                // ws.onclose = () => console.log('WebSocket disconnesso');
-                // ws.onerror = (error) => console.error('WebSocket errore:', error);
+            }
+        };
+
+        const hideMessage = (elementId) => {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.classList.add('hidden');
+            }
+        };
+
+        const setButtonLoading = (buttonId, isLoading, originalText) => {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                button.disabled = isLoading;
+                button.textContent = isLoading ? `${originalText}...` : originalText;
+            }
+        };
+
+        // --- Firebase Initialization ---
+        const initializeFirebase = async () => {
+            if (Object.keys(firebaseConfig).length === 0) {
+                console.error("Firebase config is missing. Please ensure __firebase_config is provided.");
+                return;
             }
 
-            // --- FUNZIONI DI RENDERING UI ---
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
 
-            function renderCashierUI() {
-                contentAreaEl.classList.add('tablet-layout', 'flex', 'flex-col', 'md:flex-row-reverse', 'gap-6');
-                contentAreaEl.innerHTML = `
-                    <!-- Pannello di gestione prodotti (a destra su tablet) -->
-                    <div class="w-full md:w-1/3 p-6 bg-gray-50 rounded-xl shadow-md">
-                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Gestione Prodotti</h2>
-                        <div class="mb-4">
-                            <input type="text" id="product-name" placeholder="Nome Prodotto" class="mb-2">
-                            <input type="number" id="product-price" placeholder="Prezzo" step="0.01" class="mb-2">
-                            <button id="btn-generate-barcode" class="w-full mb-2">Genera Barcode</button>
-                            <button id="btn-save-product" class="w-full bg-green-600 hover:bg-green-700">Salva Prodotto</button>
-                        </div>
-                        <h3 class="text-xl font-semibold text-gray-700 mb-3">Prodotti Registrati</h3>
-                        <ul id="registered-products-list" class="text-left overflow-y-auto max-h-60">
-                            <!-- I prodotti verranno aggiunti qui -->
-                        </ul>
-                    </div>
-
-                    <!-- Pannello Cassa (a sinistra su tablet) -->
-                    <div class="w-full md:w-2/3 p-6 bg-white rounded-xl shadow-md flex flex-col">
-                        <h2 class="text-3xl font-bold text-gray-800 mb-4">Cassa</h2>
-                        <div id="qr-code-display" class="mb-6 hidden">
-                            <p class="text-gray-600 mb-2">Scansiona questo QR per accoppiare uno scanner:</p>
-                            <div id="qr-code-area">
-                                <canvas id="qr-canvas" class="w-48 h-48"></canvas>
-                            </div>
-                            <p class="text-sm text-gray-500 mt-2">ID Sessione: <span id="session-id-display" class="font-mono font-bold text-gray-700"></span></p>
-                        </div>
-                        <h3 class="text-xl font-semibold text-gray-700 mb-3">Articoli Scansionati</h3>
-                        <ul id="scanned-products-list" class="flex-grow text-left overflow-y-auto max-h-96 pr-2">
-                            <!-- Scanned products will be added here -->
-                        </ul>
-                        <div class="mt-6 pt-4 border-t border-gray-200">
-                            <p class="text-2xl font-bold text-gray-800">Totale: <span id="total-amount" class="text-blue-600">0.00 €</span></p>
-                            <div class="flex gap-4 mt-4">
-                                <button id="btn-clear-cart" class="flex-1 bg-red-600 hover:bg-red-700">Svuota Cassa</button>
-                                <button id="btn-checkout" class="flex-1 bg-green-600 hover:bg-green-700">Paga</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                initCashierListeners();
-            }
-
-            function renderQRCodeScannerUI() {
-                contentAreaEl.classList.add('phone-layout', 'flex', 'flex-col', 'gap-6');
-                contentAreaEl.innerHTML = `
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Scansiona QR per Accoppiare</h2>
-                    <div id="reader" class="bg-gray-200 rounded-xl p-4 flex flex-col items-center justify-center h-80 relative overflow-hidden">
-                        <!-- html5-qrcode renderà qui l'area video dello scanner -->
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div class="w-3/4 h-1/4 border-2 border-blue-500 rounded-lg animate-pulse"></div>
-                        </div>
-                        <p id="qr-scan-feedback" class="absolute bottom-4 text-white bg-gray-800 bg-opacity-75 px-4 py-2 rounded-lg text-lg z-10">
-                            Inizializzazione fotocamera... Cerca la richiesta di permesso del browser.
-                        </p>
-                    </div>
-                `;
-            }
-
-            function renderBarcodeScannerUI() {
-                contentAreaEl.classList.add('phone-layout', 'flex', 'flex-col', 'gap-6');
-                contentAreaEl.innerHTML = `
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">Scanner Codici a Barre</h2>
-                    <div id="barcode-scanner-area" class="bg-gray-200 rounded-xl p-4 flex flex-col items-center justify-center h-80 relative overflow-hidden">
-                        <video id="scanner-video" class="absolute inset-0 w-full h-full object-cover"></video>
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div class="w-3/4 h-1/4 border-2 border-green-500 rounded-lg animate-pulse"></div>
-                        </div>
-                        <p id="scan-feedback" class="absolute bottom-4 text-white bg-gray-800 bg-opacity-75 px-4 py-2 rounded-lg text-lg z-10">Inquadra il Barcode</p>
-                    </div>
-                    <p id="last-scanned" class="text-lg text-gray-700 mt-4">Ultima scansione: Nessuna</p>
-                `;
-                initBarcodeScannerListeners(); // Inizializza i listener e avvia la telecamera per lo scanner barcode
-            }
-
-            // --- LOGICA CASSA (TABLET) ---
-            const products = []; // Array per i prodotti registrati
-            const cart = []; // Array per i prodotti nel carrello
-
-            function initCashierListeners() {
-                const productNameInput = document.getElementById('product-name');
-                const productPriceInput = document.getElementById('product-price');
-                const btnGenerateBarcode = document.getElementById('btn-generate-barcode');
-                const btnSaveProduct = document.getElementById('btn-save-product');
-                const registeredProductsList = document.getElementById('registered-products-list');
-                const scannedProductsList = document.getElementById('scanned-products-list');
-                const totalAmountEl = document.getElementById('total-amount');
-                const btnClearCart = document.getElementById('btn-clear-cart');
-                const btnCheckout = document.getElementById('btn-checkout');
-
-                // Gestione generazione barcode (simulato)
-                btnGenerateBarcode.addEventListener('click', () => {
-                    const name = productNameInput.value.trim();
-                    if (name) {
-                        // Genera un barcode semplice basato sul timestamp per simulazione
-                        const barcode = `PROD-${Date.now()}`;
-                        showModal('Barcode Generato', `Copia questo barcode per test: ${barcode}`);
-                        // In un'app reale, questo barcode verrebbe stampato o visualizzato su un display
-                    } else {
-                        showModal('Errore', 'Inserisci un nome prodotto per generare il barcode.');
-                    }
-                });
-
-                // Gestione salvataggio prodotto
-                btnSaveProduct.addEventListener('click', () => {
-                    const name = productNameInput.value.trim();
-                    const price = parseFloat(productPriceInput.value);
-                    if (name && !isNaN(price) && price > 0) {
-                        // Genera un barcode fittizio per il prodotto salvato
-                        const barcode = `BC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-                        const newProduct = { id: barcode, name, price };
-                        products.push(newProduct);
-                        renderRegisteredProducts();
-                        productNameInput.value = '';
-                        productPriceInput.value = '';
-                        showModal('Prodotto Salvato', `"${name}" salvato con barcode: ${barcode}`);
-                    } else {
-                        showModal('Errore', 'Inserisci un nome e un prezzo valido per il prodotto.');
-                    }
-                });
-
-                function renderRegisteredProducts() {
-                    registeredProductsList.innerHTML = '';
-                    products.forEach(product => {
-                        const li = document.createElement('li');
-                        li.className = 'flex justify-between items-center bg-white p-3 rounded-lg mb-2 shadow-sm text-gray-700';
-                        li.innerHTML = `
-                            <span>${product.name} (${product.price.toFixed(2)} €)</span>
-                            <span class="text-sm text-gray-500">BC: ${product.id}</span>
-                        `;
-                        registeredProductsList.appendChild(li);
-                    });
-                }
-
-                // Funzione per aggiungere un prodotto al carrello (simulato da scansione)
-                // Resa accessibile globalmente per simulare la comunicazione tra scanner e cassa
-                window.addProductToCart = (barcode) => {
-                    const product = products.find(p => p.id === barcode);
-                    if (product) {
-                        const existingItem = cart.find(item => item.id === barcode);
-                        if (existingItem) {
-                            existingItem.quantity++;
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    console.log("Authenticated with UID:", userId);
+                    await loadUserData(); // Load user data after authentication
+                    setupFirestoreListeners(); // Set up listeners once authenticated
+                } else {
+                    console.log("No user signed in, attempting anonymous sign-in.");
+                    try {
+                        if (initialAuthToken) {
+                            await signInWithCustomToken(auth, initialAuthToken);
                         } else {
-                            cart.push({ ...product, quantity: 1 });
+                            await signInAnonymously(auth);
                         }
-                        renderCart();
-                        showModal('Prodotto Aggiunto', `Aggiunto: ${product.name}`);
-                    } else {
-                        showModal('Prodotto Sconosciuto', `Barcode "${barcode}" non trovato. Registra il prodotto nella sezione "Gestione Prodotti".`);
+                    } catch (error) {
+                        console.error("Firebase authentication failed:", error);
                     }
-                };
-
-                function renderCart() {
-                    scannedProductsList.innerHTML = '';
-                    let total = 0;
-                    if (cart.length === 0) {
-                        scannedProductsList.innerHTML = '<li class="text-gray-500 text-center py-4">Nessun articolo scansionato.</li>';
-                    }
-                    cart.forEach(item => {
-                        const li = document.createElement('li');
-                        li.className = 'flex justify-between items-center bg-white p-3 rounded-lg mb-2 shadow-sm text-gray-700';
-                        const itemTotal = item.price * item.quantity;
-                        total += itemTotal;
-                        li.innerHTML = `
-                            <div class="flex-grow text-left">
-                                <span class="font-semibold">${item.name}</span><br>
-                                <span class="text-sm text-gray-500">${item.price.toFixed(2)} € x ${item.quantity}</span>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <button data-id="${item.id}" data-action="decrease" class="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm hover:bg-gray-300 transform-none scale-100 shadow-none">-</button>
-                                <span class="font-bold">${item.quantity}</span>
-                                <button data-id="${item.id}" data-action="increase" class="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-sm hover:bg-gray-300 transform-none scale-100 shadow-none">+</button>
-                                <span class="font-bold w-20 text-right">${itemTotal.toFixed(2)} €</span>
-                                <button data-id="${item.id}" data-action="remove" class="bg-red-500 text-white px-2 py-1 rounded-md text-sm hover:bg-red-600 transform-none scale-100 shadow-none">X</button>
-                            </div>
-                        `;
-                        scannedProductsList.appendChild(li);
-                    });
-                    totalAmountEl.textContent = total.toFixed(2) + ' €';
-
-                    // Aggiungi listener per i pulsanti di quantità e rimozione
-                    scannedProductsList.querySelectorAll('button').forEach(button => {
-                        button.addEventListener('click', (e) => {
-                            const id = e.target.dataset.id;
-                            const action = e.target.dataset.action;
-                            const itemIndex = cart.findIndex(item => item.id === id);
-
-                            if (itemIndex > -1) {
-                                if (action === 'increase') {
-                                    cart[itemIndex].quantity++;
-                                } else if (action === 'decrease') {
-                                    cart[itemIndex].quantity--;
-                                    if (cart[itemIndex].quantity <= 0) {
-                                        cart.splice(itemIndex, 1); // Rimuovi se la quantità è 0
-                                    }
-                                } else if (action === 'remove') {
-                                    cart.splice(itemIndex, 1);
-                                }
-                                renderCart();
-                            }
-                        });
-                    });
                 }
+            });
+        };
 
-                btnClearCart.addEventListener('click', () => {
-                    if (cart.length > 0) {
-                        cart.length = 0; // Svuota l'array
-                        renderCart();
-                        showModal('Cassa Svuotata', 'Il carrello è stato svuotato.');
-                    } else {
-                        showModal('Info', 'Il carrello è già vuoto.');
+        // --- Data Loading and Listeners ---
+        const loadUserData = async () => {
+            if (!db || !userId) return;
+            const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/userData/profile`);
+            onSnapshot(userDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    userData = docSnap.data();
+                    console.log("User data loaded:", userData);
+                    // Progress through steps based on loaded user data
+                    if (userData.isRegistered && currentStep < 3) {
+                        showStep(3); // Move to pairing if registered
                     }
-                });
-
-                btnCheckout.addEventListener('click', () => {
-                    if (cart.length > 0) {
-                        showModal('Pagamento Completato', `Totale da pagare: ${totalAmountEl.textContent}. Grazie!`);
-                        cart.length = 0; // Svuota il carrello dopo il checkout
-                        renderCart();
-                    } else {
-                        showModal('Attenzione', 'Il carrello è vuoto. Aggiungi prodotti per procedere.');
+                    if (userData.isPaired && currentStep < 4) {
+                        showStep(4); // Move to main app if paired
                     }
-                });
-
-                // Inizializza con alcuni prodotti di esempio per il test
-                products.push(
-                    { id: 'BC-12345', name: 'Latte Fresco', price: 1.50 },
-                    { id: 'BC-67890', name: 'Pane Integrale', price: 2.20 },
-                    { id: 'BC-11223', name: 'Mele Rosse', price: 0.80 },
-                    { id: 'BC-44556', name: 'Uova Biologiche', price: 3.50 }
-                );
-                renderRegisteredProducts();
-            }
-
-            // --- SCANNER LOGIC (SMARTPHONE) ---
-            let simulatedScanInterval; // Variabile per l'intervallo di scansione simulata
-            let barcodeScannerHtml5QrCode = null; // Istanza separata per lo scanner barcode (non usata direttamente per barcode in questa demo, ma utile se volessi estenderla)
-
-            function initQRCodeScanner() {
-                // Verifica che Html5Qrcode sia definito prima di usarlo
-                if (typeof Html5Qrcode === 'undefined') {
-                    console.warn("Html5Qrcode non è ancora definito. Riprovo tra un attimo...");
-                    setTimeout(initQRCodeScanner, 100); // Riprova dopo 100ms
-                    return;
-                }
-
-                const qrScanFeedbackEl = document.getElementById('qr-scan-feedback');
-                if (!qrScanFeedbackEl) { // Assicurati che l'elemento esista
-                    console.error("Elemento qr-scan-feedback non trovato.");
-                    return;
-                }
-                
-                qrScanFeedbackEl.textContent = 'Inizializzazione fotocamera... Cerca la richiesta di permesso del browser.';
-
-                html5QrCode = new Html5Qrcode("reader");
-                
-                // Richiedi il permesso per la fotocamera e avvia lo scanner
-                html5QrCode.start(
-                    { facingMode: "environment" }, // Preferisci la fotocamera posteriore
-                    { fps: 10, qrbox: { width: 250, height: 250 } }, // Opzioni per il frame rate e la dimensione della scatola di scansione
-                    (decodedText, decodedResult) => {
-                        // Successo nella scansione del QR code
-                        console.log(`QR Code scansionato: ${decodedText}`);
-                        sessionId = decodedText; // L'ID di sessione è il contenuto del QR
-                        showModal('Accoppiato!', `Connesso alla cassa con ID: ${sessionId}`);
-                        
-                        // Ferma lo scanner QR e passa allo scanner barcode
-                        html5QrCode.stop().then(() => {
-                            renderBarcodeScannerUI();
-                            startBarcodeScanningSimulation(); // Avvia la simulazione di scansione dei barcode
-                            deviceInfoEl.textContent = `Sei in modalità SCANNER (Smartphone). Scansioni inviate a Cassa ID: ${sessionId}`;
-                        }).catch((err) => {
-                            console.error("Errore nel fermare lo scanner QR:", err);
-                            showModal('Errore Scanner QR', 'Impossibile fermare lo scanner QR.');
-                        });
-                    },
-                    (errorMessage) => {
-                        // Errore o nessun QR code rilevato (silenzioso per evitare spam di console)
-                        // console.log(`Nessun QR Code rilevato: ${errorMessage}`);
-                        qrScanFeedbackEl.textContent = 'Inquadra il QR Code del tablet...'; // Reset del messaggio
-                    }
-                ).catch((err) => {
-                    console.error("Impossibile avviare lo scanner QR:", err);
-                    qrScanFeedbackEl.textContent = 'Errore: Fotocamera non accessibile.';
-                    showModal('Errore Scanner QR', 'Impossibile avviare lo scanner QR. Controlla i permessi della fotocamera. Potrebbe essere bloccata o non disponibile. Cerca un popup o un\'icona nella barra degli indirizzi del browser.');
-                });
-            }
-
-            function initBarcodeScannerListeners() {
-                const scannerVideo = document.getElementById('scanner-video');
-                const scanFeedback = document.getElementById('scan-feedback');
-                const lastScannedEl = document.getElementById('last-scanned');
-
-                if (!sessionId) {
-                    showModal('Errore', 'Scanner non accoppiato. Scansiona prima il QR Code della cassa.');
-                    return;
-                }
-
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-                        .then(function(stream) {
-                            scannerVideo.srcObject = stream;
-                            scannerVideo.play();
-                            scanFeedback.textContent = 'Scanner pronto!';
-                            // Qui si dovrebbe avviare la logica di scansione dei barcode reali
-                            // utilizzando html5-qrcode o un'altra libreria specifica per barcode.
-                            // Per questa demo, ci affidiamo alla simulazione
-                        })
-                        .catch(function(err) {
-                            console.error("Errore nell'accesso alla fotocamera per barcode:", err);
-                            scanFeedback.textContent = 'Errore: Impossibile accedere alla fotocamera.';
-                            showModal('Errore Fotocamera', 'Impossibile accedere alla fotocamera per lo scanner di barcode. Assicurati di aver concesso i permessi.');
-                        });
                 } else {
-                    scanFeedback.textContent = 'Il tuo browser non supporta l\'accesso alla fotocamera.';
-                    showModal('Browser non supportato', 'Il tuo browser non supporta l\'accesso alla fotocamera, necessario per lo scanner di barcode.');
+                    console.log("No user profile found, starting registration.");
+                    showStep(1); // Ensure we are at registration if no profile
                 }
-            }
+            }, (error) => console.error("Error fetching user data:", error));
+        };
 
-            function startBarcodeScanningSimulation() {
-                let productIndex = 0;
-                // Questi sono gli ID barcode che la cassa "conosce" (quelli salvati o predefiniti)
-                // L'ID deve corrispondere a quelli generati/salvati nella cassa
-                const demoBarcodes = [
-                    'BC-12345', // Latte Fresco (pre-registrato in cassa)
-                    'BC-67890', // Pane Integrale (pre-registrato in cassa)
-                    'BC-11223', // Mele Rosse (pre-registrato in cassa)
-                    'BC-44556', // Uova Biologiche (pre-registrato in cassa)
-                    'BC-78901', // Barcode di un prodotto NON registrato (verrà mostrato un messaggio di errore nella cassa)
-                    'BC-23456'  // Cioccolato Fondente (NON pre-registrato nell'array iniziale della cassa)
-                ];
+        const setupFirestoreListeners = () => {
+            if (!db || !userId) return;
 
-                clearInterval(simulatedScanInterval); // Pulisci intervalli precedenti per evitare doppioni
-                simulatedScanInterval = setInterval(() => {
-                    const barcode = demoBarcodes[productIndex % demoBarcodes.length];
-                    
-                    document.getElementById('scan-feedback').textContent = `Simulando scansione: ${barcode}`;
-                    document.getElementById('last-scanned').textContent = `Ultima scansione: ${barcode}`;
-
-                    // Invia il barcode alla cassa (simulato)
-                    // In un'app reale, questo invierebbe via WebSocket al server, che poi lo inoltrerebbe al tablet
-                    // ws.send(JSON.stringify({ type: 'scan', sessionId: sessionId, barcode: barcode }));
-                    // Per questa demo, chiamiamo direttamente la funzione del tablet se esiste
-                    if (window.addProductToCart) {
-                        window.addProductToCart(barcode);
-                    } else {
-                        console.warn("Funzione addProductToCart non disponibile. La cassa non è attiva o non ha caricato la funzione.");
-                        showModal('Errore di Connessione', 'La cassa non è raggiungibile. Assicurati che sia attiva e accoppiata.');
+            // Listen for pairing data
+            const pairingColRef = collection(db, `artifacts/${appId}/public/data/pairings`);
+            onSnapshot(pairingColRef, (snapshot) => {
+                let foundPairing = null;
+                snapshot.forEach(d => {
+                    const data = d.data();
+                    if (deviceType === 'tablet' && data.tabletId === userId) {
+                        foundPairing = { id: d.id, ...data };
+                    } else if (deviceType === 'phone' && data.phoneId === userId) {
+                        foundPairing = { id: d.id, ...data };
                     }
-
-                    productIndex++;
-                }, 3000); // Scansiona un prodotto ogni 3 secondi
-            }
-
-            // --- FUNZIONI DI ACCOPPIAMENTO (QR CODE) ---
-
-            function displayQRCode(data) {
-                const qrCodeDisplayEl = document.getElementById('qr-code-display');
-                const qrCanvas = document.getElementById('qr-canvas');
-                const sessionIdDisplay = document.getElementById('session-id-display');
-
-                qrCodeDisplayEl.classList.remove('hidden');
-                sessionIdDisplay.textContent = data;
-
-                // Inizializza QRious per generare il QR code
-                // Il contenuto del QR code sarà l'ID di sessione
-                new QRious({
-                    element: qrCanvas,
-                    value: data,
-                    size: 200,
-                    padding: 10,
-                    background: 'white',
-                    foreground: 'black'
                 });
+                pairingData = foundPairing;
+                console.log("Pairing data updated:", pairingData);
+
+                if (pairingData && pairingData.isPaired) {
+                    updateMessage('pairing-message', 'Dispositivi accoppiati con successo!', false);
+                    document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
+                    document.getElementById('pairing-status').classList.remove('hidden');
+                    setTimeout(() => showStep(4), 1500);
+                } else if (pairingData && !pairingData.isPaired && currentStep === 3) {
+                    // Stay in pairing if not yet paired, but a session exists
+                    updateMessage('pairing-message', 'In attesa che l\'altro dispositivo si connetta.', false);
+                } else if (!pairingData && currentStep === 3) {
+                    // If no pairing data and we are in pairing step (e.g., after regenerate)
+                    updateMessage('pairing-message', 'Generato nuovo codice. Inserisci sul telefono.', false);
+                }
+
+                // Update scanned product on tablet
+                if (deviceType === 'tablet' && pairingData && pairingData.scannedProductId) {
+                    const foundProduct = products.find(p => p.barcode === pairingData.scannedProductId);
+                    const scannedProductDetailsDiv = document.getElementById('scanned-product-details');
+                    if (foundProduct) {
+                        scannedProductDetailsDiv.innerHTML = `
+                            <p><span class="font-medium">Nome:</span> ${foundProduct.name}</p>
+                            <p><span class="font-medium">Costo:</span> €${foundProduct.cost.toFixed(2)}</p>
+                            <p><span class="font-medium">Contenuto:</span> ${foundProduct.contents}</p>
+                            <p><span class="font-medium">Codice a Barre:</span> ${foundProduct.barcode}</p>
+                        `;
+                    } else {
+                        scannedProductDetailsDiv.innerHTML = `<p class="text-center">Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.</p>`;
+                    }
+                } else if (deviceType === 'tablet') {
+                    document.getElementById('scanned-product-details').innerHTML = `<p class="text-center">In attesa di scansione dal telefono...</p>`;
+                }
+
+            }, (error) => console.error("Error fetching pairing data:", error));
+
+            // Listen for product list changes (for tablet)
+            if (deviceType === 'tablet') {
+                const productsColRef = collection(db, `artifacts/${appId}/public/data/products`);
+                onSnapshot(productsColRef, (snapshot) => {
+                    products = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    console.log("Products updated:", products);
+                    renderProductList();
+                }, (error) => console.error("Error fetching products:", error));
+            }
+        };
+
+        const renderProductList = () => {
+            const container = document.getElementById('product-list-container');
+            if (!container) return;
+
+            if (products.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-700 dark:text-gray-300">Nessun prodotto registrato.</p>`;
+            } else {
+                let tableHtml = `
+                    <table class="min-w-full bg-white dark:bg-gray-700 rounded-lg shadow-md">
+                        <thead>
+                            <tr class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 uppercase text-sm leading-normal">
+                                <th class="py-3 px-6 text-left">Nome</th>
+                                <th class="py-3 px-6 text-left">Costo</th>
+                                <th class="py-3 px-6 text-left">Contenuto</th>
+                                <th class="py-3 px-6 text-left">Codice a Barre</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700 dark:text-gray-300 text-sm font-light">
+                `;
+                products.forEach(product => {
+                    tableHtml += `
+                        <tr class="border-b border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <td class="py-3 px-6 text-left whitespace-nowrap">${product.name}</td>
+                            <td class="py-3 px-6 text-left">€${product.cost.toFixed(2)}</td>
+                            <td class="py-3 px-6 text-left">${product.contents}</td>
+                            <td class="py-3 px-6 text-left font-mono text-purple-600 dark:text-purple-300">${product.barcode}</td>
+                        </tr>
+                    `;
+                });
+                tableHtml += `
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = tableHtml;
+            }
+        };
+
+        // --- Event Handlers ---
+
+        // Registration Form
+        document.getElementById('registration-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessage('registration-error');
+            setButtonLoading('registration-button', true, 'Continua');
+
+            const name = document.getElementById('name').value;
+            const surname = document.getElementById('surname').value;
+            const password = document.getElementById('password').value; // In real app, hash this!
+            const telegram = document.getElementById('telegram').value;
+
+            if (!name || !surname || !password || !telegram) {
+                updateMessage('registration-error', 'Tutti i campi sono obbligatori.', true);
+                setButtonLoading('registration-button', false, 'Continua');
+                return;
             }
 
-            // --- GESTIONE MESSAGGI WEBSOCKET (SIMULATO) ---
-            // Questa funzione sarebbe usata se avessi un backend WebSocket.
-            // Per questa demo, lo scanner chiama direttamente addProductToCart sulla cassa.
-            function handleWebSocketMessage(message) {
-                const data = JSON.parse(message);
-                if (data.type === 'scannedProduct' && currentRole === 'cashier') {
-                    // Se la cassa riceve un messaggio di prodotto scansionato
-                    window.addProductToCart(data.barcode);
-                }
-                // Altre logiche di comunicazione
+            try {
+                const userDocRef = doc(db, `artifacts/${appId}/users/${userId}/userData/profile`);
+                const newUserData = {
+                    name,
+                    surname,
+                    password,
+                    telegram,
+                    isRegistered: true,
+                    createdAt: new Date()
+                };
+                await setDoc(userDocRef, newUserData, { merge: true });
+                userData = newUserData; // Update global state
+                showStep(3); // Directly move to pairing step
+            } catch (err) {
+                console.error("Errore durante la registrazione:", err);
+                updateMessage('registration-error', 'Errore durante la registrazione. Riprova.', true);
+            } finally {
+                setButtonLoading('registration-button', false, 'Continua');
             }
         });
+
+        // Tablet Code Generation Logic (called by showStep(3) for tablet)
+        const handleTabletCodeGeneration = async () => {
+            if (!db || !userId) return;
+
+            // If already paired, no need to do anything with code generation.
+            if (pairingData && pairingData.isPaired) {
+                updateMessage('pairing-message', 'Dispositivi accoppiati con successo!', false);
+                document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
+                document.getElementById('pairing-status').classList.remove('hidden');
+                return;
+            }
+
+            // If there's existing UNPAIRED pairing data for THIS tablet, reuse its code value.
+            if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired) {
+                document.getElementById('pairing-code-display').querySelector('p').textContent = pairingData.pairingCode;
+                document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${pairingData.id}`;
+                pairingId = pairingData.id; // Update global pairingId
+                updateMessage('pairing-message', 'Codice esistente. Inserisci sul telefono.', false);
+                hasGeneratedCodeForCurrentSession = true; // Mark as generated based on existing data
+                console.log("Reusing existing pairing code:", pairingData.pairingCode, "and pairingId:", pairingData.id);
+            }
+            // Otherwise, generate a new code ONLY if we haven't already generated one for this session.
+            else if (!hasGeneratedCodeForCurrentSession) {
+                setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
+                const newPairingId = generateUniqueId();
+                const newPairingCode = generateSixDigitCode();
+
+                document.getElementById('pairing-code-display').querySelector('p').textContent = newPairingCode;
+                document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${newPairingId}`;
+                pairingId = newPairingId; // Update global pairingId
+                hasGeneratedCodeForCurrentSession = true; // Mark that we've generated one
+                console.log("Generated new pairing code:", newPairingCode, "and new pairingId:", newPairingId);
+
+                const pairingDocRef = doc(db, `artifacts/${appId}/public/data/pairings`, newPairingId);
+                await setDoc(pairingDocRef, {
+                    tabletId: userId,
+                    pairingCode: newPairingCode, // Store the 6-digit code
+                    isPaired: false,
+                    createdAt: new Date()
+                }, { merge: true });
+                updateMessage('pairing-message', 'Generato nuovo codice. Inserisci sul telefono.', false);
+                setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
+            }
+        };
+
+        // Regenerate Code Button
+        document.getElementById('regenerate-code-button').addEventListener('click', async () => {
+            if (!db || !userId) return;
+            setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
+            hideMessage('pairing-message');
+            document.getElementById('pairing-status').classList.add('hidden');
+
+            // Clear local state to force new generation
+            pairingData = null;
+            pairingId = null;
+            hasGeneratedCodeForCurrentSession = false; // Allow new generation
+            await handleTabletCodeGeneration(); // Trigger new generation
+            setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
+        });
+
+        // Phone Scan Code Form
+        document.getElementById('scan-code-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessage('pairing-message');
+            setButtonLoading('scan-code-button', true, 'Accoppia Dispositivo');
+
+            const scanInput = document.getElementById('scan-input').value;
+
+            if (!scanInput || scanInput.length !== 6 || !/^\d{6}$/.test(scanInput)) {
+                updateMessage('pairing-message', 'Inserisci un codice di 6 cifre valido.', true);
+                setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
+                return;
+            }
+
+            // Find the pairing document by scanned code value
+            const q = collection(db, `artifacts/${appId}/public/data/pairings`);
+            const snapshot = await getDocs(q);
+            let foundPairingDoc = null;
+            snapshot.forEach(d => {
+                if (d.data().pairingCode === scanInput) { // Check against pairingCode
+                    foundPairingDoc = d;
+                }
+            });
+
+            if (foundPairingDoc) {
+                const pairingDocRef = doc(db, `artifacts/${appId}/public/data/pairings`, foundPairingDoc.id);
+                await setDoc(pairingDocRef, {
+                    phoneId: userId,
+                    isPaired: true,
+                    pairedAt: new Date()
+                }, { merge: true });
+                pairingId = foundPairingDoc.id; // Update global pairingId
+                pairingData = { ...foundPairingDoc.data(), id: foundPairingDoc.id, phoneId: userId, isPaired: true, pairedAt: new Date() }; // Update global pairingData
+                updateMessage('pairing-message', 'Accoppiamento riuscito! Caricamento app...', false);
+                setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
+                // The onSnapshot listener will catch the isPaired change and move to step 4
+            } else {
+                updateMessage('pairing-message', 'Codice non valido o scaduto. Riprova.', true);
+                setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
+            }
+        });
+
+        // Add Product Form (Tablet)
+        document.getElementById('add-product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessage('add-product-message');
+            setButtonLoading('add-product-button', true, 'Aggiungi Prodotto');
+
+            const productName = document.getElementById('productName').value;
+            const productCost = document.getElementById('productCost').value;
+            const productContents = document.getElementById('productContents').value;
+
+            if (!productName || !productCost || !productContents) {
+                updateMessage('add-product-message', 'Tutti i campi del prodotto sono obbligatori.', true);
+                setButtonLoading('add-product-button', false, 'Aggiungi Prodotto');
+                return;
+            }
+
+            const newBarcode = generateUniqueId().substring(0, 12).toUpperCase(); // Simulate a barcode
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/public/data/products`), {
+                    name: productName,
+                    cost: parseFloat(productCost),
+                    contents: productContents,
+                    barcode: newBarcode,
+                    createdAt: new Date()
+                });
+                updateMessage('add-product-message', 'Prodotto aggiunto con successo!', false);
+                document.getElementById('productName').value = '';
+                document.getElementById('productCost').value = '';
+                document.getElementById('productContents').value = '';
+            } catch (err) {
+                console.error("Errore durante l'aggiunta del prodotto:", err);
+                updateMessage('add-product-message', "Errore durante l'aggiunta del prodotto.", true);
+            } finally {
+                setButtonLoading('add-product-button', false, 'Aggiungi Prodotto');
+            }
+        });
+
+        // Barcode Scan Form (Phone)
+        document.getElementById('barcode-scan-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideMessage('barcode-scan-message');
+            setButtonLoading('barcode-scan-button', true, 'Invia al Tablet');
+
+            const scanInput = document.getElementById('barcodeScan').value;
+
+            if (!scanInput) {
+                updateMessage('barcode-scan-message', 'Inserisci un codice a barre da scansionare.', true);
+                setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
+                return;
+            }
+
+            if (!pairingData || !pairingData.id || !pairingData.isPaired) {
+                updateMessage('barcode-scan-message', 'Errore: Il telefono non è accoppiato con un tablet.', true);
+                setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
+                return;
+            }
+
+            try {
+                // Update the pairing document with the scanned product ID
+                const pairingDocRef = doc(db, `artifacts/${appId}/public/data/pairings`, pairingData.id);
+                await setDoc(pairingDocRef, {
+                    scannedProductId: scanInput,
+                    lastScannedAt: new Date(),
+                    phoneId: userId // Ensure phoneId is set in pairing data
+                }, { merge: true });
+                updateMessage('barcode-scan-message', `Codice "${scanInput}" inviato al tablet.`, false);
+                document.getElementById('barcodeScan').value = ''; // Clear input after sending
+            } catch (err) {
+                console.error("Errore durante l'invio del codice a barre:", err);
+                updateMessage('barcode-scan-message', "Errore durante l'invio del codice a barre.", true);
+            } finally {
+                setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
+            }
+        });
+
+
+        // --- Initial Setup on Window Load ---
+        window.onload = () => {
+            // Detect device type initially
+            const width = window.innerWidth;
+            if (width < 768) {
+                deviceType = 'phone';
+            } else {
+                deviceType = 'tablet';
+            }
+            console.log("Device Type Detected:", deviceType);
+
+            // Initialize Firebase and start the app flow
+            initializeFirebase();
+        };
+
     </script>
 </body>
 </html>
