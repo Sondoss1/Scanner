@@ -287,7 +287,9 @@
                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div class="w-3/4 h-1/4 border-2 border-blue-500 rounded-lg animate-pulse"></div>
                         </div>
-                        <p id="qr-scan-feedback" class="absolute bottom-4 text-white bg-gray-800 bg-opacity-75 px-4 py-2 rounded-lg text-lg z-10">Inquadra il QR Code del tablet...</p>
+                        <p id="qr-scan-feedback" class="absolute bottom-4 text-white bg-gray-800 bg-opacity-75 px-4 py-2 rounded-lg text-lg z-10">
+                            Inizializzazione fotocamera... Cerca la richiesta di permesso del browser.
+                        </p>
                     </div>
                 `;
             }
@@ -485,7 +487,7 @@
                     return;
                 }
                 
-                qrScanFeedbackEl.textContent = 'Inizializzazione scanner QR...';
+                qrScanFeedbackEl.textContent = 'Inizializzazione fotocamera... Cerca la richiesta di permesso del browser.';
 
                 html5QrCode = new Html5Qrcode("reader");
                 
@@ -517,7 +519,7 @@
                 ).catch((err) => {
                     console.error("Impossibile avviare lo scanner QR:", err);
                     qrScanFeedbackEl.textContent = 'Errore: Fotocamera non accessibile.';
-                    showModal('Errore Scanner QR', 'Impossibile avviare lo scanner QR. Controlla i permessi della fotocamera. Potrebbe essere bloccata o non disponibile.');
+                    showModal('Errore Scanner QR', 'Impossibile avviare lo scanner QR. Controlla i permessi della fotocamera. Potrebbe essere bloccata o non disponibile. Cerca un popup o un\'icona nella barra degli indirizzi del browser.');
                 });
             }
 
