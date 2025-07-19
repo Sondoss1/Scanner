@@ -292,7 +292,6 @@
 
         const showStep = (stepNumber) => {
             document.getElementById('registration-step').classList.add('hidden');
-            // Removed telegram-code-step
             document.getElementById('pairing-step').classList.add('hidden');
             document.getElementById('tablet-app').classList.add('hidden');
             document.getElementById('phone-app').classList.add('hidden');
@@ -378,6 +377,8 @@
                 } else {
                     console.log("No user signed in, attempting anonymous sign-in.");
                     try {
+                        // This allows anyone to "register" by creating an anonymous Firebase account.
+                        // Their registration details (name, surname, etc.) are then stored against this anonymous UID.
                         if (initialAuthToken) {
                             await signInWithCustomToken(auth, initialAuthToken);
                         } else {
