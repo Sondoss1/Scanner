@@ -203,7 +203,7 @@
             <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Crea Nuovo Prodotto</h3>
             <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="productName">Nome Prodotto</label>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="productName">Nome</label>
                     <input type="text" id="productName" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100" required>
                 </div>
                 <div>
@@ -268,16 +268,27 @@
         let hasGeneratedCodeForCurrentSession = false; // To prevent multiple code generations on tablet
         let notificationTimeout; // For managing notification visibility
 
-        // --- Predefined Allowed User for Local Access ---
-        const ALLOWED_USER_DATA = {
-            id: 'francesco_notaro_id', // A fixed ID for this specific user
-            name: 'Francesco',
-            surname: 'Notaro',
-            password: 'password123', // IMPORTANT: This is hardcoded for demo. NOT secure for real apps.
-            telegram: 'Suicidjo',
-            isRegistered: true,
-            createdAt: new Date('2025-01-01T00:00:00Z') // Example date
-        };
+        // --- Predefined Allowed Users for Local Access ---
+        const ALLOWED_USERS_DATA = [
+            {
+                id: 'francesco_notaro_id', // A fixed ID for this specific user
+                name: 'Francesco',
+                surname: 'Notaro',
+                password: 'password123', // IMPORTANT: This is hardcoded for demo. NOT secure for real apps.
+                telegram: 'Suicidjo',
+                isRegistered: true,
+                createdAt: new Date('2025-01-01T00:00:00Z') // Example date
+            },
+            {
+                id: 'test_user_d_id', // A fixed ID for the new user
+                name: 'd',
+                surname: 'd',
+                password: 'd', // IMPORTANT: This is hardcoded for demo. NOT secure for real apps.
+                telegram: 'd',
+                isRegistered: true,
+                createdAt: new Date('2025-07-19T00:00:00Z') // Example date for the new user
+            }
+        ];
 
         // --- Utility Functions ---
 
@@ -392,15 +403,18 @@
                 if (savedState) {
                     const parsedState = JSON.parse(savedState);
 
-                    // Check if loaded user data matches the allowed user
-                    if (parsedState.userData &&
-                        parsedState.userData.name === ALLOWED_USER_DATA.name &&
-                        parsedState.userData.surname === ALLOWED_USER_DATA.surname &&
-                        parsedState.userData.password === ALLOWED_USER_DATA.password && // IMPORTANT: Not secure for real apps
-                        parsedState.userData.telegram === ALLOWED_USER_DATA.telegram) {
+                    // Find if loaded user data matches any of the allowed users
+                    const matchedUser = ALLOWED_USERS_DATA.find(allowedUser =>
+                        parsedState.userData &&
+                        parsedState.userData.name === allowedUser.name &&
+                        parsedState.userData.surname === allowedUser.surname &&
+                        parsedState.userData.password === allowedUser.password && // IMPORTANT: Not secure for real apps
+                        parsedState.userData.telegram === allowedUser.telegram
+                    );
 
-                        userId = ALLOWED_USER_DATA.id; // Assign the fixed ID for the allowed user
-                        userData = parsedState.userData;
+                    if (matchedUser) {
+                        userId = matchedUser.id; // Assign the fixed ID for the matched allowed user
+                        userData = parsedState.userData; // Use the loaded user data
                         pairingData = parsedState.pairingData;
                         products = parsedState.products || [];
                         hasGeneratedCodeForCurrentSession = parsedState.hasGeneratedCodeForCurrentSession || false;
@@ -417,15 +431,15 @@
                         renderProductList(); // Re-render products after loading
                         return true; // State was loaded and user is allowed
                     } else {
-                        // If saved data doesn't match allowed user, clear it and start fresh
-                        console.log("Loaded user data does not match allowed user. Resetting state.");
+                        // If saved data doesn't match any allowed user, clear it and start fresh
+                        console.log("Loaded user data does not match any allowed user. Resetting state.");
                         localStorage.removeItem(LOCAL_STORAGE_KEY);
-                        userId = ALLOWED_USER_DATA.id; // Set userId to the allowed user's ID
+                        // Do NOT set userId here, it will be set by the initial load logic
                         userData = null;
                         pairingData = null;
                         products = [];
                         hasGeneratedCodeForCurrentSession = false;
-                        showStep(1); // Force registration for the allowed user
+                        showStep(1); // Force registration for any allowed user
                         return false;
                     }
                 }
@@ -433,8 +447,7 @@
                 console.error("Error loading from Local Storage:", e);
                 showNotification("Errore nel caricamento dei dati locali.", 'error');
             }
-            // If no saved state or error, start fresh
-            userId = ALLOWED_USER_DATA.id; // Set userId to the allowed user's ID
+            // If no saved state or error, do not set userId here. It will be handled by initial load.
             return false; // State was not loaded or not allowed
         };
 
@@ -532,18 +545,22 @@
             const password = document.getElementById('password').value;
             const telegram = document.getElementById('telegram').value;
 
-            // Check if entered credentials match the allowed user
-            if (name === ALLOWED_USER_DATA.name &&
-                surname === ALLOWED_USER_DATA.surname &&
-                password === ALLOWED_USER_DATA.password &&
-                telegram === ALLOWED_USER_DATA.telegram) {
+            // Check if entered credentials match any of the allowed users
+            const matchedUser = ALLOWED_USERS_DATA.find(allowedUser =>
+                name === allowedUser.name &&
+                surname === allowedUser.surname &&
+                password === allowedUser.password &&
+                telegram === allowedUser.telegram
+            );
 
-                userData = { ...ALLOWED_USER_DATA, isRegistered: true, createdAt: new Date() };
+            if (matchedUser) {
+                userId = matchedUser.id; // Set userId to the ID of the matched user
+                userData = { ...matchedUser, isRegistered: true, createdAt: new Date() };
                 saveStateToLocalStorage(); // Save state after successful registration
                 showNotification('Registrazione completata con successo!', 'success');
                 showStep(3); // Directly move to pairing step
             } else {
-                showNotification('Credenziali non valide. Solo l\'utente predefinito può accedere.', 'error');
+                showNotification('Credenziali non valide. Solo gli utenti predefiniti possono accedere.', 'error');
             }
             setButtonLoading('registration-button', false, 'Continua');
         });
@@ -718,12 +735,14 @@
             console.log("Device Type Detected:", deviceType);
 
             // Try to load state from local storage. If not found or not allowed, initialize new session.
-            // userId will be set to ALLOWED_USER_DATA.id by loadStateFromLocalStorage or here.
-            loadStateFromLocalStorage();
-            if (!userData) { // If userData is still null after loading (meaning no allowed user was loaded)
-                userId = ALLOWED_USER_DATA.id; // Ensure userId is set to the allowed user's ID for new sessions
-                document.getElementById('telegram').value = ALLOWED_USER_DATA.telegram; // Pre-fill telegram for convenience
-                console.log("New Session or unauthorized user - Forcing registration for allowed user.");
+            const stateLoaded = loadStateFromLocalStorage();
+            if (!stateLoaded) {
+                // If no state was loaded or the loaded user was not allowed,
+                // we need to ensure userId is set to a *valid* allowed user ID for the session.
+                // For simplicity, we'll default to the first allowed user's ID.
+                userId = ALLOWED_USERS_DATA[0].id;
+                document.getElementById('telegram').value = ALLOWED_USERS_DATA[0].telegram; // Pre-fill telegram for convenience
+                console.log("New Session or unauthorized user - Forcing registration for an allowed user.");
                 showStep(1); // Start at registration for the allowed user
             }
         };
