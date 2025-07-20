@@ -136,50 +136,26 @@
         <!-- Notification message will go here -->
     </div>
 
-    <!-- Step 0: Role Selection -->
-    <div id="role-selection-step" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
-        <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Seleziona il tuo ruolo</h2>
+    <!-- Step 0: User Selection -->
+    <div id="user-selection-step" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Seleziona Utente</h2>
         <div class="space-y-4">
-            <button id="select-tablet-role" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
-                Sono il Tablet
+            <button id="select-francesco-user" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                Accedi come Francesco (Tablet)
             </button>
-            <button id="select-phone-role" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
-                Sono il Telefono
+            <button id="select-d-user" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                Accedi come d (Telefono)
             </button>
         </div>
     </div>
 
-    <!-- Step 1: Device Pairing -->
-    <div id="pairing-step" class="w-full max-w-xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden">
-        <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Accoppiamento Dispositivi</h2>
-
-        <div id="tablet-pairing-ui" class="flex flex-col items-center w-full hidden">
-            <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
-                Tablet in attesa di accoppiamento con il Telefono...
-            </p>
-            <div id="available-phones-list" class="w-full mt-4">
-                <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Telefoni Disponibili:</h3>
-                <ul class="space-y-2" id="phones-list-container">
-                    <li class="text-gray-500 dark:text-gray-400">Nessun telefono disponibile.</li>
-                </ul>
-            </div>
-        </div>
-
-        <div id="phone-pairing-ui" class="flex flex-col items-center w-full hidden">
-            <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
-                Telefono in attesa di essere selezionato dal Tablet...
-            </p>
-        </div>
-        <p id="pairing-status" class="mt-4 text-center text-green-600 dark:text-green-400 font-bold hidden"></p>
-    </div>
-
-    <!-- Step 2: Tablet Main App -->
-    <div id="tablet-app" class="w-full max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden relative">
-        <button id="home-button-tablet" class="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+    <!-- Step 1: Tablet Main App (for Francesco) -->
+    <div id="francesco-app" class="w-full max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden relative">
+        <button id="home-button-francesco" class="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
             Home
         </button>
-        <h2 class="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-gray-100">Cassa Supermercato (Tablet)</h2>
-        <p id="tablet-pairing-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
+        <h2 class="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-gray-100">Cassa Supermercato (Tablet di Francesco)</h2>
+        <p id="francesco-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
 
         <!-- Product Creation Form -->
         <div class="mb-8 p-6 bg-gray-50 dark:bg-gray-700 rounded-lg shadow-inner">
@@ -222,13 +198,13 @@
         </div>
     </div>
 
-    <!-- Step 2: Phone Main App -->
-    <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden relative">
-        <button id="home-button-phone" class="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+    <!-- Step 1: Phone Main App (for d) -->
+    <div id="d-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden relative">
+        <button id="home-button-d" class="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
             Home
         </button>
-        <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Scanner Telefono</h2>
-        <p id="phone-pairing-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Scanner Telefono (di d)</h2>
+        <p id="d-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
 
         <div class="w-full">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1" for="barcodeScan">Scansiona Codice a Barre</label>
@@ -244,23 +220,22 @@
     <!-- Application Logic -->
     <script type="module">
         // --- Global State ---
-        let deviceInstanceId = null; // Unique ID for this specific browser tab/window instance
-        let deviceRole = 'unknown'; // 'tablet' or 'phone'
-        let currentStep = 0; // 0 for role selection, 1 for pairing, 2 for main app
-        let currentPairing = null; // The specific pairing object this device is part of
-        let products = [];
+        let currentUserId = null; // The ID of the currently logged-in user
+        let userAppData = {}; // Stores all app data, keyed by userId: { products: [], scannedProductId: null }
         let notificationTimeout;
 
         // --- Constants for Local Storage and Messaging ---
-        const LS_KEY_DEVICE_INFO = 'supermarketApp_device_info'; // Stores { deviceInstanceId, deviceRole }
-        const LS_KEY_ACTIVE_DEVICES = 'supermarketApp_active_devices'; // Stores map of all active devices { [id]: { role, timestamp } }
-        const LS_KEY_CURRENT_PAIRING_SESSION = 'supermarketApp_current_pairing_session'; // Stores the single active pairing session { id, tabletDeviceId, phoneDeviceId, isPaired, scannedProductId }
-        const PAIRING_MESSAGE_TYPE = 'supermarketApp_pairing_update';
-        const STALE_DEVICE_TIMEOUT_MS = 15000; // Devices older than 15 seconds are considered stale
+        const LS_KEY_ALL_USER_DATA = 'supermarketApp_all_user_data'; // Stores { [userId]: { products: [], scannedProductId: null } }
+        const LS_KEY_CURRENT_USER_ID = 'supermarketApp_current_user_id'; // Stores the ID of the last logged-in user
+        const APP_UPDATE_MESSAGE_TYPE = 'supermarketApp_update'; // Generic message for cross-tab updates
+
+        // --- Predefined User IDs ---
+        const USER_FRANCESCO_ID = 'francesco_notaro_id';
+        const USER_D_ID = 'test_user_d_id';
 
         // --- Utility Functions ---
 
-        // Simple ID generator
+        // Simple ID generator for products
         const generateUniqueId = () => crypto.randomUUID();
 
         // --- UI Management Functions ---
@@ -291,38 +266,25 @@
         };
 
         const showStep = (stepNumber) => {
-            document.getElementById('role-selection-step').classList.add('hidden');
-            document.getElementById('pairing-step').classList.add('hidden');
-            document.getElementById('tablet-app').classList.add('hidden');
-            document.getElementById('phone-app').classList.add('hidden');
-
-            currentStep = stepNumber;
+            document.getElementById('user-selection-step').classList.add('hidden');
+            document.getElementById('francesco-app').classList.add('hidden');
+            document.getElementById('d-app').classList.add('hidden');
 
             switch (stepNumber) {
-                case 0: // Role Selection
-                    document.getElementById('role-selection-step').classList.remove('hidden');
+                case 0: // User Selection
+                    document.getElementById('user-selection-step').classList.remove('hidden');
                     break;
-                case 1: // Pairing Step
-                    document.getElementById('pairing-step').classList.remove('hidden');
-                    if (deviceRole === 'tablet') {
-                        document.getElementById('tablet-pairing-ui').classList.remove('hidden');
-                        document.getElementById('phone-pairing-ui').classList.add('hidden');
-                    } else { // deviceRole === 'phone'
-                        document.getElementById('tablet-pairing-ui').classList.add('hidden');
-                        document.getElementById('phone-pairing-ui').classList.remove('hidden');
-                    }
-                    // Trigger pairing logic, which also updates active devices list
-                    handlePairingDiscovery();
-                    break;
-                case 2: // Main App (Tablet or Phone)
-                    if (deviceRole === 'tablet') {
-                        document.getElementById('tablet-app').classList.remove('hidden');
-                        document.getElementById('tablet-pairing-status').textContent = `Accoppiato. ID Sessione: ${currentPairing ? currentPairing.id : 'N/A'}`;
-                        document.getElementById('tablet-pairing-status').classList.remove('hidden');
-                    } else { // deviceRole === 'phone'
-                        document.getElementById('phone-app').classList.remove('hidden');
-                        document.getElementById('phone-pairing-status').textContent = `Accoppiato. ID Sessione: ${currentPairing ? currentPairing.id : 'N/A'}`;
-                        document.getElementById('phone-pairing-status').classList.remove('hidden');
+                case 1: // Main App (based on currentUserId)
+                    if (currentUserId === USER_FRANCESCO_ID) {
+                        document.getElementById('francesco-app').classList.remove('hidden');
+                        document.getElementById('francesco-status').textContent = `Benvenuto, Francesco! (Tablet)`;
+                        document.getElementById('francesco-status').classList.remove('hidden');
+                        renderProductList(); // Render products for Francesco
+                        updateScannedProductDisplay(); // Update scanned product display for Francesco
+                    } else if (currentUserId === USER_D_ID) {
+                        document.getElementById('d-app').classList.remove('hidden');
+                        document.getElementById('d-status').textContent = `Benvenuto, d! (Telefono)`;
+                        document.getElementById('d-status').classList.remove('hidden');
                     }
                     break;
             }
@@ -338,205 +300,156 @@
 
         // --- Data Management (Local Storage & Cross-tab Communication) ---
 
-        const saveStateToLocalStorage = () => {
+        const saveAllUserDataToLocalStorage = () => {
             try {
-                // Save device info (role and instance ID)
-                localStorage.setItem(LS_KEY_DEVICE_INFO, JSON.stringify({ deviceInstanceId, deviceRole }));
-                // Save current pairing session
-                localStorage.setItem(LS_KEY_CURRENT_PAIRING_SESSION, JSON.stringify(currentPairing));
-                // Save products
-                localStorage.setItem('supermarketApp_products', JSON.stringify(products));
-
-                console.log("State saved to Local Storage.");
+                localStorage.setItem(LS_KEY_ALL_USER_DATA, JSON.stringify(userAppData));
+                localStorage.setItem(LS_KEY_CURRENT_USER_ID, currentUserId); // Save current user ID
+                console.log("All user data saved to Local Storage.");
             } catch (e) {
-                console.error("Error saving to Local Storage:", e);
+                console.error("Error saving all user data to Local Storage:", e);
                 showNotification("Errore nel salvataggio dei dati locali.", 'error');
             }
         };
 
-        const loadStateFromLocalStorage = () => {
+        const loadAllUserDataFromLocalStorage = () => {
             try {
-                // Load device info
-                const deviceInfo = JSON.parse(localStorage.getItem(LS_KEY_DEVICE_INFO));
-                if (deviceInfo) {
-                    deviceInstanceId = deviceInfo.deviceInstanceId;
-                    deviceRole = deviceInfo.deviceRole;
+                const savedData = localStorage.getItem(LS_KEY_ALL_USER_DATA);
+                if (savedData) {
+                    userAppData = JSON.parse(savedData);
                 } else {
-                    deviceInstanceId = generateUniqueId(); // Generate new if not found
-                    deviceRole = 'unknown';
+                    userAppData = {}; // Initialize if no data exists
+                }
+                currentUserId = localStorage.getItem(LS_KEY_CURRENT_USER_ID); // Load current user ID
+
+                // Ensure initial structure for predefined users if not present
+                if (!userAppData[USER_FRANCESCO_ID]) {
+                    userAppData[USER_FRANCESCO_ID] = { products: [], scannedProductId: null };
+                }
+                if (!userAppData[USER_D_ID]) {
+                    userAppData[USER_D_ID] = { products: [], scannedProductId: null };
                 }
 
-                // Load current pairing session
-                currentPairing = JSON.parse(localStorage.getItem(LS_KEY_CURRENT_PAIRING_SESSION));
-
-                // Load products
-                products = JSON.parse(localStorage.getItem('supermarketApp_products')) || [];
-
-                console.log("State loaded from Local Storage:", { deviceInstanceId, deviceRole, currentPairing, products });
-                return true;
+                console.log("All user data loaded from Local Storage:", userAppData);
             } catch (e) {
-                console.error("Error loading from Local Storage:", e);
+                console.error("Error loading all user data from Local Storage:", e);
                 showNotification("Errore nel caricamento dei dati locali.", 'error');
             }
-            return false;
         };
 
-        const resetAppStateAndGoToRoleSelection = () => {
-            deviceInstanceId = generateUniqueId(); // Generate a new ID for the new session
-            deviceRole = 'unknown';
-            currentPairing = null;
-            products = [];
-            localStorage.removeItem(LS_KEY_DEVICE_INFO);
-            localStorage.removeItem(LS_KEY_ACTIVE_DEVICES);
-            localStorage.removeItem(LS_KEY_CURRENT_PAIRING_SESSION);
-            localStorage.removeItem('supermarketApp_products');
-            showStep(0); // Go back to role selection
-            showNotification('Stato resettato. Seleziona il tuo ruolo.', 'info');
+        const resetAppStateAndGoToUserSelection = () => {
+            currentUserId = null;
+            userAppData = {}; // Reset all in-memory data
+            localStorage.removeItem(LS_KEY_ALL_USER_DATA); // Clear all saved data
+            localStorage.removeItem(LS_KEY_CURRENT_USER_ID);
+            showStep(0); // Go back to user selection
+            showNotification('Stato resettato. Seleziona un utente.', 'info');
         };
 
-        // --- Device Discovery and Pairing Logic ---
+        // --- Product Management Functions ---
 
-        const updateActiveDevices = () => {
-            let activeDevices = JSON.parse(localStorage.getItem(LS_KEY_ACTIVE_DEVICES)) || {};
-            const now = Date.now();
-
-            // Remove stale devices
-            for (const id in activeDevices) {
-                if (now - activeDevices[id].timestamp > STALE_DEVICE_TIMEOUT_MS) {
-                    delete activeDevices[id];
-                }
+        const addProductForFrancesco = (newProduct) => {
+            if (!userAppData[USER_FRANCESCO_ID]) {
+                userAppData[USER_FRANCESCO_ID] = { products: [], scannedProductId: null };
             }
-
-            // Add/update current device's presence, ensuring deviceInstanceId is part of the stored object
-            activeDevices[deviceInstanceId] = {
-                id: deviceInstanceId, // Explicitly add id to the object
-                role: deviceRole,
-                timestamp: now
-            };
-
-            localStorage.setItem(LS_KEY_ACTIVE_DEVICES, JSON.stringify(activeDevices));
-            console.log("Active devices updated:", activeDevices);
-
-            // Notify other tabs
-            window.postMessage({
-                type: PAIRING_MESSAGE_TYPE,
-                action: 'active_devices_updated'
-            }, window.location.origin);
+            userAppData[USER_FRANCESCO_ID].products.push(newProduct);
+            saveAllUserDataToLocalStorage();
+            renderProductList();
         };
 
-        const handlePairingDiscovery = () => {
-            if (deviceRole === 'unknown') return; // Cannot pair if role is not set
-
-            updateActiveDevices(); // Register self and clean up stale devices
-
-            if (deviceRole === 'tablet') {
-                renderAvailablePhones();
-                // If already paired, transition to main app
-                if (currentPairing && currentPairing.isPaired && currentPairing.tabletDeviceId === deviceInstanceId) {
-                    showStep(2);
-                    showNotification('Tablet già accoppiato.', 'success');
-                } else {
-                    showNotification('Tablet in attesa di selezione telefono.', 'info');
-                }
-            } else if (deviceRole === 'phone') {
-                // Phone just waits for tablet to initiate pairing
-                // It will react to 'pairing_initiated' message or on next loadStateFromLocalStorage
-                if (currentPairing && currentPairing.isPaired && currentPairing.phoneDeviceId === deviceInstanceId) {
-                    showStep(2);
-                    showNotification('Telefono già accoppiato.', 'success');
-                } else {
-                    showNotification('Telefono in attesa di essere accoppiato dal tablet.', 'info');
-                }
+        const updateScannedProductForFrancesco = (barcode) => {
+            if (!userAppData[USER_FRANCESCO_ID]) {
+                userAppData[USER_FRANCESCO_ID] = { products: [], scannedProductId: null };
             }
+            userAppData[USER_FRANCESCO_ID].scannedProductId = barcode;
+            saveAllUserDataToLocalStorage();
+            updateScannedProductDisplay();
         };
 
-        const renderAvailablePhones = () => {
-            const phonesListContainer = document.getElementById('phones-list-container');
-            if (!phonesListContainer) return;
+        const renderProductList = () => {
+            const container = document.getElementById('product-list-container');
+            if (!container) return;
 
-            const activeDevices = JSON.parse(localStorage.getItem(LS_KEY_ACTIVE_DEVICES)) || {};
-            let availablePhones = Object.values(activeDevices).filter(device =>
-                device.role === 'phone' && device.id !== deviceInstanceId && // Use device.id now
-                (!currentPairing || (currentPairing.phoneDeviceId !== device.id && currentPairing.tabletDeviceId !== deviceInstanceId)) // Use device.id
-            );
+            const francescoProducts = userAppData[USER_FRANCESCO_ID]?.products || [];
 
-            phonesListContainer.innerHTML = ''; // Clear previous list
-
-            if (availablePhones.length === 0) {
-                phonesListContainer.innerHTML = `<li class="text-gray-500 dark:text-gray-400">Nessun telefono disponibile.</li>`;
+            if (francescoProducts.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-700 dark:text-gray-300">Nessun prodotto registrato.</p>`;
             } else {
-                availablePhones.forEach(phone => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-md shadow-sm';
-                    listItem.innerHTML = `
-                        <span class="text-gray-800 dark:text-gray-200">Telefono (ID: ${phone.id.substring(0, 8)}...)</span>
-                        <button class="pair-button bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-md text-sm" data-phone-id="${phone.id}">
-                            Accoppia
-                        </button>
+                let tableHtml = `
+                    <table class="min-w-full bg-white dark:bg-gray-700 rounded-lg shadow-md">
+                        <thead>
+                            <tr class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 uppercase text-sm leading-normal">
+                                <th class="py-3 px-6 text-left">Nome</th>
+                                <th class="py-3 px-6 text-left">Costo</th>
+                                <th class="py-3 px-6 text-left">Contenuto</th>
+                                <th class="py-3 px-6 text-left">Codice a Barre</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-gray-700 dark:text-gray-300 text-sm font-light">
+                `;
+                francescoProducts.forEach(product => {
+                    tableHtml += `
+                        <tr class="border-b border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
+                            <td class="py-3 px-6 text-left whitespace-nowrap">${product.name}</td>
+                            <td class="py-3 px-6 text-left">€${product.cost.toFixed(2)}</td>
+                            <td class="py-3 px-6 text-left">${product.contents}</td>
+                            <td class="py-3 px-6 text-left font-mono text-purple-600 dark:text-purple-300">${product.barcode}</td>
+                        </tr>
                     `;
-                    phonesListContainer.appendChild(listItem);
                 });
-
-                // Add event listeners to new pair buttons
-                document.querySelectorAll('.pair-button').forEach(button => {
-                    button.onclick = (event) => {
-                        const phoneIdToPair = event.target.dataset.phoneId;
-                        initiatePairing(phoneIdToPair);
-                    };
-                });
+                tableHtml += `
+                        </tbody>
+                    </table>
+                `;
+                container.innerHTML = tableHtml;
             }
         };
 
-        const initiatePairing = (phoneIdToPair) => {
-            if (deviceRole !== 'tablet') {
-                showNotification('Solo il tablet può avviare l\'accoppiamento.', 'error');
-                return;
+        const updateScannedProductDisplay = () => {
+            const scannedProductDetailsDiv = document.getElementById('scanned-product-details');
+            if (!scannedProductDetailsDiv) return;
+
+            const scannedBarcode = userAppData[USER_FRANCESCO_ID]?.scannedProductId;
+            if (scannedBarcode) {
+                const foundProduct = userAppData[USER_FRANCESCO_ID]?.products.find(p => p.barcode === scannedBarcode);
+                if (foundProduct) {
+                    scannedProductDetailsDiv.innerHTML = `
+                        <p><span class="font-medium">Nome:</span> ${foundProduct.name}</p>
+                        <p><span class="font-medium">Costo:</span> €${foundProduct.cost.toFixed(2)}</p>
+                        <p><span class="font-medium">Contenuto:</span> ${foundProduct.contents}</p>
+                        <p><span class="font-medium">Codice a Barre:</span> ${foundProduct.barcode}</p>
+                    `;
+                    showNotification(`Prodotto "${foundProduct.name}" scansionato!`, 'success');
+                } else {
+                    scannedProductDetailsDiv.innerHTML = `<p class="text-center">Prodotto non trovato per il codice a barre: ${scannedBarcode}.</p>`;
+                    showNotification(`Prodotto non trovato per il codice a barre: ${scannedBarcode}.`, 'error');
+                }
+            } else {
+                scannedProductDetailsDiv.innerHTML = `<p class="text-center">In attesa di scansione dal telefono...</p>`;
             }
-
-            // Create/update the pairing session
-            currentPairing = {
-                id: generateUniqueId(),
-                tabletDeviceId: deviceInstanceId,
-                phoneDeviceId: phoneIdToPair,
-                isPaired: true,
-                scannedProductId: null,
-                lastScannedAt: null,
-                createdAt: new Date()
-            };
-            saveStateToLocalStorage();
-            showNotification(`Accoppiamento avviato con il telefono ${phoneIdToPair.substring(0, 8)}...`, 'success');
-            console.log("Pairing initiated:", currentPairing);
-
-            // Notify all tabs about the new pairing
-            window.postMessage({
-                type: PAIRING_MESSAGE_TYPE,
-                action: 'pairing_initiated',
-                pairingId: currentPairing.id
-            }, window.location.origin);
-
-            showStep(2); // Move to main app
         };
+
 
         // --- Event Listeners ---
 
-        // Role Selection Buttons
-        document.getElementById('select-tablet-role').addEventListener('click', () => {
-            deviceRole = 'tablet';
-            saveStateToLocalStorage();
-            showStep(1); // Go to pairing step
+        // User Selection Buttons
+        document.getElementById('select-francesco-user').addEventListener('click', () => {
+            currentUserId = USER_FRANCESCO_ID;
+            saveAllUserDataToLocalStorage();
+            showStep(1); // Go to main app
         });
 
-        document.getElementById('select-phone-role').addEventListener('click', () => {
-            deviceRole = 'phone';
-            saveStateToLocalStorage();
-            showStep(1); // Go to pairing step
+        document.getElementById('select-d-user').addEventListener('click', () => {
+            currentUserId = USER_D_ID;
+            saveAllUserDataToLocalStorage();
+            showStep(1); // Go to main app
         });
 
-        // Add Home button listeners
-        document.getElementById('home-button-tablet').addEventListener('click', resetAppStateAndGoToRoleSelection);
-        document.getElementById('home-button-phone').addEventListener('click', resetAppStateAndGoToRoleSelection);
+        // Home buttons
+        document.getElementById('home-button-francesco').addEventListener('click', resetAppStateAndGoToUserSelection);
+        document.getElementById('home-button-d').addEventListener('click', resetAppStateAndGoToUserSelection);
 
-        // Add Product Form (Tablet)
+
+        // Add Product Form (for Francesco's Tablet)
         document.getElementById('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             showNotification('', 'info');
@@ -561,54 +474,18 @@
                 barcode: newBarcode,
                 createdAt: new Date()
             };
-            products.push(newProduct); // Add to local products array
-            saveStateToLocalStorage(); // Save state after adding product
-            renderProductList();
+            addProductForFrancesco(newProduct);
             showNotification('Prodotto aggiunto con successo!', 'success');
             document.getElementById('productName').value = '';
             document.getElementById('productCost').value = '';
             document.getElementById('productContents').value = '';
             setButtonLoading('add-product-button', false, 'Aggiungi Prodotto');
+
+            // Notify other tabs about data change
+            window.postMessage({ type: APP_UPDATE_MESSAGE_TYPE, action: 'products_updated' }, window.location.origin);
         });
 
-        const renderProductList = () => {
-            const container = document.getElementById('product-list-container');
-            if (!container) return;
-
-            if (products.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-700 dark:text-gray-300">Nessun prodotto registrato.</p>`;
-            } else {
-                let tableHtml = `
-                    <table class="min-w-full bg-white dark:bg-gray-700 rounded-lg shadow-md">
-                        <thead>
-                            <tr class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 uppercase text-sm leading-normal">
-                                <th class="py-3 px-6 text-left">Nome</th>
-                                <th class="py-3 px-6 text-left">Costo</th>
-                                <th class="py-3 px-6 text-left">Contenuto</th>
-                                <th class="py-3 px-6 text-left">Codice a Barre</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-gray-700 dark:text-gray-300 text-sm font-light">
-                `;
-                products.forEach(product => {
-                    tableHtml += `
-                        <tr class="border-b border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
-                            <td class="py-3 px-6 text-left whitespace-nowrap">${product.name}</td>
-                            <td class="py-3 px-6 text-left">€${product.cost.toFixed(2)}</td>
-                            <td class="py-3 px-6 text-left">${product.contents}</td>
-                            <td class="py-3 px-6 text-left font-mono text-purple-600 dark:text-purple-300">${product.barcode}</td>
-                        </tr>
-                    `;
-                });
-                tableHtml += `
-                        </tbody>
-                    </table>
-                `;
-                container.innerHTML = tableHtml;
-            }
-        };
-
-        // Barcode Scan Form (Phone)
+        // Barcode Scan Form (for d's Phone)
         document.getElementById('barcode-scan-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             showNotification('', 'info');
@@ -622,93 +499,42 @@
                 return;
             }
 
-            // Always re-read the latest state from Local Storage to ensure synchronization
-            loadStateFromLocalStorage();
-
-            // Check if pairingData exists and is for the correct pair and roles
-            if (!currentPairing || !currentPairing.id || !currentPairing.isPaired ||
-                currentPairing.tabletDeviceId === null || currentPairing.phoneDeviceId !== deviceInstanceId) {
-                showNotification('Errore: Il telefono non è accoppiato con un tablet valido.', 'error');
-                setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
-                return;
-            }
-
-            // Update the currentPairing with the scanned product ID
-            currentPairing.scannedProductId = scanInput;
-            currentPairing.lastScannedAt = new Date();
-            saveStateToLocalStorage(); // Save state after updating scanned product
+            // Update the scanned product for Francesco's data
+            updateScannedProductForFrancesco(scanInput);
 
             showNotification(`Codice "${scanInput}" inviato al tablet.`, 'success');
             document.getElementById('barcodeScan').value = '';
             setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
 
-            // Broadcast update to other tabs (especially the tablet)
-            window.postMessage({
-                type: PAIRING_MESSAGE_TYPE,
-                action: 'product_scanned',
-                pairingId: currentPairing.id,
-                scannedProductId: scanInput
-            }, window.location.origin);
+            // Notify other tabs about data change
+            window.postMessage({ type: APP_UPDATE_MESSAGE_TYPE, action: 'scanned_product_updated' }, window.location.origin);
         });
 
 
         // --- Initial Setup on Window Load ---
         window.onload = () => {
-            // Load state from local storage. This will populate deviceInstanceId, deviceRole, currentPairing, products.
-            loadStateFromLocalStorage();
+            loadAllUserDataFromLocalStorage();
 
-            // If deviceInstanceId is not set (first time visit or cleared local storage)
-            if (!deviceInstanceId) {
-                deviceInstanceId = generateUniqueId(); // Assign a fresh ID for this instance
-                saveStateToLocalStorage(); // Save this new ID immediately
-                console.log("New session instance ID:", deviceInstanceId);
+            if (currentUserId) {
+                showStep(1); // If a user was previously selected, go directly to their app
             } else {
-                console.log("Loaded session instance ID:", deviceInstanceId);
+                showStep(0); // Otherwise, show user selection
             }
 
-            // Determine initial step based on loaded state
-            if (deviceRole === 'unknown') {
-                showStep(0); // Show role selection if not chosen
-            } else {
-                // If role is known, proceed to pairing or main app based on pairing status
-                if (currentPairing && currentPairing.isPaired &&
-                    ((deviceRole === 'tablet' && currentPairing.tabletDeviceId === deviceInstanceId) ||
-                     (deviceRole === 'phone' && currentPairing.phoneDeviceId === deviceInstanceId))) {
-                    showStep(2); // Already paired, go to main app
-                } else {
-                    showStep(1); // Role chosen but not paired, go to pairing step
-                }
-            }
-
-            // Set up a periodic check for active devices (for discovery)
-            setInterval(updateActiveDevices, 5000); // Every 5 seconds
-
-            // Add listener for messages from other tabs (for pairing updates)
+            // Add listener for messages from other tabs
             window.addEventListener('message', (event) => {
                 // Ensure the message is from the same origin and of the correct type
-                if (event.origin === window.location.origin && event.data && event.data.type === PAIRING_MESSAGE_TYPE) {
+                if (event.origin === window.location.origin && event.data && event.data.type === APP_UPDATE_MESSAGE_TYPE) {
                     console.log("Received message from another tab:", event.data);
                     // Re-load the state from local storage to synchronize with the latest changes
-                    loadStateFromLocalStorage();
+                    loadAllUserDataFromLocalStorage();
 
-                    // Handle different message actions
-                    if (event.data.action === 'active_devices_updated') {
-                        if (deviceRole === 'tablet' && currentStep === 1) {
-                            renderAvailablePhones(); // Update list of phones
-                        }
-                        // Phone will re-evaluate its pairing status on next handlePairingDiscovery call
-                    } else if (event.data.action === 'pairing_initiated' || event.data.action === 'product_scanned') {
-                        // If a pairing was initiated or a product scanned, re-evaluate state
-                        if (currentPairing && currentPairing.isPaired &&
-                            ((deviceRole === 'tablet' && currentPairing.tabletDeviceId === deviceInstanceId) ||
-                             (deviceRole === 'phone' && currentPairing.phoneDeviceId === deviceInstanceId))) {
-                            showStep(2); // Paired, go to main app
-                            if (event.data.action === 'pairing_initiated') {
-                                showNotification('Dispositivi accoppiati con successo!', 'success');
-                            }
-                        } else if (currentStep === 1) {
-                            // If still in pairing step, and not yet paired, re-trigger pairing logic
-                            handlePairingDiscovery();
+                    // Re-render relevant parts of the UI based on the action
+                    if (currentUserId === USER_FRANCESCO_ID) { // Only Francesco's tablet needs to update its view
+                        if (event.data.action === 'products_updated') {
+                            renderProductList();
+                        } else if (event.data.action === 'scanned_product_updated') {
+                            updateScannedProductDisplay();
                         }
                     }
                 }
