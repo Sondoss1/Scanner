@@ -398,6 +398,21 @@
             }
         };
 
+        // Helper to load only pairing data from local storage
+        const loadPairingDataFromLocalStorage = () => {
+            try {
+                const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+                if (savedState) {
+                    const parsedState = JSON.parse(savedState);
+                    return parsedState.pairingData;
+                }
+            } catch (e) {
+                console.error("Error loading pairing data from Local Storage:", e);
+            }
+            return null;
+        };
+
+
         const loadStateFromLocalStorage = () => {
             try {
                 const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -575,58 +590,52 @@
                 return;
             }
 
+            let currentPairingCode = null;
+            let currentPairingId = null;
+
             // Check if there's existing UNPAIRED pairing data for THIS tablet with a 3-digit code.
             // If not, or if the code is not 3 digits, force new generation.
             if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired && pairingData.pairingCode && pairingData.pairingCode.length === 3) {
-                document.getElementById('pairing-code-display').querySelector('p').textContent = pairingData.pairingCode;
-                document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${pairingData.id}`;
-                pairingId = pairingData.id; // Update global pairingId
+                currentPairingCode = pairingData.pairingCode;
+                currentPairingId = pairingData.id;
                 showNotification('Codice esistente. Inserisci sul telefono.', 'info');
-                hasGeneratedCodeForCurrentSession = true; // Mark as generated based on existing data
-                console.log("Reusing existing 3-digit pairing code:", pairingData.pairingCode, "and pairingId:", pairingData.id);
-
-                // Broadcast existing pairing data for other tabs to pick up
-                window.postMessage({
-                    type: PAIRING_MESSAGE_TYPE,
-                    pairingCode: pairingData.pairingCode,
-                    pairingId: pairingData.id,
-                    tabletId: userId
-                }, window.location.origin);
+                hasGeneratedCodeForCurrentSession = true;
+                console.log("Reusing existing 3-digit pairing code:", currentPairingCode, "and pairingId:", currentPairingId);
 
             }
             // Otherwise, generate a new code. This covers cases where no pairingData exists,
             // or existing pairingData is not for this tablet, or existing pairingCode is not 3 digits.
-            else { 
+            else {
                 setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
-                const newPairingId = generateUniqueId();
-                const newPairingCode = generateThreeDigitCode(); // Use 3-digit code
-
-                document.getElementById('pairing-code-display').querySelector('p').textContent = newPairingCode;
-                document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${newPairingId}`;
-                pairingId = newPairingId; // Update global pairingId
-                hasGeneratedCodeForCurrentSession = true; // Mark that we've generated one
-                console.log("Generated new 3-digit pairing code:", newPairingCode, "and new pairingId:", newPairingId);
-
-                // Store pairing data locally
-                pairingData = {
-                    id: newPairingId,
-                    tabletId: userId,
-                    pairingCode: newPairingCode, // Store the 3-digit code
-                    isPaired: false,
-                    createdAt: new Date()
-                };
-                saveStateToLocalStorage(); // Save state after generating code
-                showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
-                setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
-
-                // Broadcast new pairing data for other tabs to pick up
-                window.postMessage({
-                    type: PAIRING_MESSAGE_TYPE,
-                    pairingCode: newPairingCode,
-                    pairingId: newPairingId,
-                    tabletId: userId
-                }, window.location.origin);
+                currentPairingId = generateUniqueId();
+                currentPairingCode = generateThreeDigitCode(); // Ensure 3-digit code
+                hasGeneratedCodeForCurrentSession = true;
+                console.log("Generated new 3-digit pairing code:", currentPairingCode, "and new pairingId:", currentPairingId);
             }
+
+            document.getElementById('pairing-code-display').querySelector('p').textContent = currentPairingCode;
+            document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${currentPairingId}`;
+            pairingId = currentPairingId; // Update global pairingId
+
+            // Store pairing data locally and update global state
+            pairingData = {
+                id: currentPairingId,
+                tabletId: userId,
+                pairingCode: currentPairingCode,
+                isPaired: false, // Always false when generated by tablet
+                createdAt: new Date()
+            };
+            saveStateToLocalStorage(); // Save state after updating pairingData
+
+            showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
+            setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
+
+            // Broadcast a notification to other tabs to re-read local storage
+            window.postMessage({
+                type: PAIRING_MESSAGE_TYPE,
+                action: 'pairing_code_updated',
+                pairingId: currentPairingId // Send the ID so receiver can check if it's the relevant one
+            }, window.location.origin);
         };
 
         // Regenerate Code Button
@@ -657,11 +666,13 @@
                 return;
             }
 
-            // For phone, we rely on `pairingData` being set by the `message` event listener
-            // which means the tablet must have broadcasted its code.
-            if (pairingData && pairingData.pairingCode === scanInput && !pairingData.isPaired) {
+            // Explicitly load the latest pairing data from Local Storage before checking
+            const latestPairingData = loadPairingDataFromLocalStorage();
+
+            if (latestPairingData && latestPairingData.pairingCode === scanInput && !latestPairingData.isPaired) {
                 // Update local pairing data to mark as paired
                 updatePairingDataLocally({
+                    id: latestPairingData.id, // Ensure we use the correct pairing ID
                     phoneId: userId,
                     isPaired: true,
                     pairedAt: new Date()
@@ -768,16 +779,10 @@
                 // Ensure the message is from the same origin and of the correct type
                 if (event.origin === window.location.origin && event.data && event.data.type === PAIRING_MESSAGE_TYPE) {
                     console.log("Received pairing message from another tab:", event.data);
-                    // Update our local pairingData with the received data
-                    // This simulates the "server" pushing updates to all clients
-                    pairingData = {
-                        id: event.data.pairingId,
-                        tabletId: event.data.tabletId,
-                        pairingCode: event.data.pairingCode,
-                        isPaired: false, // Assume it's not yet paired on this side until user acts
-                        createdAt: new Date()
-                    };
-                    saveStateToLocalStorage(); // Persist the received pairing data
+                    // When a message is received, trigger a re-load of the state from local storage.
+                    // This ensures all tabs are synchronized with the latest state from local storage.
+                    loadStateFromLocalStorage(); // Re-load the entire state, including pairingData
+
                     // If we are on the phone side and in the pairing step, update UI
                     if (deviceType === 'phone' && currentStep === 3) {
                         showNotification('Codice di accoppiamento ricevuto dal tablet.', 'info');
