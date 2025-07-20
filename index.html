@@ -136,7 +136,7 @@
         <!-- Notification message will go here -->
     </div>
 
-    <!-- Step 1: Role Selection -->
+    <!-- Step 0: Role Selection -->
     <div id="role-selection-step" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Seleziona il tuo ruolo</h2>
         <div class="space-y-4">
@@ -149,7 +149,7 @@
         </div>
     </div>
 
-    <!-- Step 2: Device Pairing (now simplified) -->
+    <!-- Step 1: Device Pairing -->
     <div id="pairing-step" class="w-full max-w-xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden">
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Accoppiamento Dispositivi</h2>
 
@@ -157,17 +157,23 @@
             <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
                 Tablet in attesa di accoppiamento con il Telefono...
             </p>
+            <div id="available-phones-list" class="w-full mt-4">
+                <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Telefoni Disponibili:</h3>
+                <ul class="space-y-2" id="phones-list-container">
+                    <li class="text-gray-500 dark:text-gray-400">Nessun telefono disponibile.</li>
+                </ul>
+            </div>
         </div>
 
         <div id="phone-pairing-ui" class="flex flex-col items-center w-full hidden">
             <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
-                Telefono in attesa di sessione dal Tablet...
+                Telefono in attesa di essere selezionato dal Tablet...
             </p>
         </div>
         <p id="pairing-status" class="mt-4 text-center text-green-600 dark:text-green-400 font-bold hidden"></p>
     </div>
 
-    <!-- Step 3: Tablet Main App -->
+    <!-- Step 2: Tablet Main App -->
     <div id="tablet-app" class="w-full max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden relative">
         <button id="home-button-tablet" class="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
             Home
@@ -216,7 +222,7 @@
         </div>
     </div>
 
-    <!-- Step 3: Phone Main App -->
+    <!-- Step 2: Phone Main App -->
     <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden relative">
         <button id="home-button-phone" class="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
             Home
@@ -241,13 +247,16 @@
         let deviceInstanceId = null; // Unique ID for this specific browser tab/window instance
         let deviceRole = 'unknown'; // 'tablet' or 'phone'
         let currentStep = 0; // 0 for role selection, 1 for pairing, 2 for main app
-        let pairingData = null; // Stores the active pairing session data
+        let currentPairing = null; // The specific pairing object this device is part of
         let products = [];
         let notificationTimeout;
 
         // --- Constants for Local Storage and Messaging ---
-        const LOCAL_STORAGE_KEY = 'supermarketApp_state';
+        const LS_KEY_DEVICE_INFO = 'supermarketApp_device_info'; // Stores { deviceInstanceId, deviceRole }
+        const LS_KEY_ACTIVE_DEVICES = 'supermarketApp_active_devices'; // Stores map of all active devices { [id]: { role, timestamp } }
+        const LS_KEY_CURRENT_PAIRING_SESSION = 'supermarketApp_current_pairing_session'; // Stores the single active pairing session { id, tabletDeviceId, phoneDeviceId, isPaired, scannedProductId }
         const PAIRING_MESSAGE_TYPE = 'supermarketApp_pairing_update';
+        const STALE_DEVICE_TIMEOUT_MS = 15000; // Devices older than 15 seconds are considered stale
 
         // --- Utility Functions ---
 
@@ -302,16 +311,17 @@
                         document.getElementById('tablet-pairing-ui').classList.add('hidden');
                         document.getElementById('phone-pairing-ui').classList.remove('hidden');
                     }
-                    handleAutomaticPairing(); // Trigger pairing logic
+                    // Trigger pairing logic, which also updates active devices list
+                    handlePairingDiscovery();
                     break;
                 case 2: // Main App (Tablet or Phone)
                     if (deviceRole === 'tablet') {
                         document.getElementById('tablet-app').classList.remove('hidden');
-                        document.getElementById('tablet-pairing-status').textContent = `Accoppiato. ID Sessione: ${pairingData ? pairingData.id : 'N/A'}`;
+                        document.getElementById('tablet-pairing-status').textContent = `Accoppiato. ID Sessione: ${currentPairing ? currentPairing.id : 'N/A'}`;
                         document.getElementById('tablet-pairing-status').classList.remove('hidden');
                     } else { // deviceRole === 'phone'
                         document.getElementById('phone-app').classList.remove('hidden');
-                        document.getElementById('phone-pairing-status').textContent = `Accoppiato. ID Sessione: ${pairingData ? pairingData.id : 'N/A'}`;
+                        document.getElementById('phone-pairing-status').textContent = `Accoppiato. ID Sessione: ${currentPairing ? currentPairing.id : 'N/A'}`;
                         document.getElementById('phone-pairing-status').classList.remove('hidden');
                     }
                     break;
@@ -329,14 +339,14 @@
         // --- Data Management (Local Storage & Cross-tab Communication) ---
 
         const saveStateToLocalStorage = () => {
-            const stateToSave = {
-                deviceInstanceId,
-                deviceRole,
-                pairingData,
-                products
-            };
             try {
-                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+                // Save device info (role and instance ID)
+                localStorage.setItem(LS_KEY_DEVICE_INFO, JSON.stringify({ deviceInstanceId, deviceRole }));
+                // Save current pairing session
+                localStorage.setItem(LS_KEY_CURRENT_PAIRING_SESSION, JSON.stringify(currentPairing));
+                // Save products
+                localStorage.setItem('supermarketApp_products', JSON.stringify(products));
+
                 console.log("State saved to Local Storage.");
             } catch (e) {
                 console.error("Error saving to Local Storage:", e);
@@ -346,16 +356,24 @@
 
         const loadStateFromLocalStorage = () => {
             try {
-                const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (savedState) {
-                    const parsedState = JSON.parse(savedState);
-                    deviceInstanceId = parsedState.deviceInstanceId || generateUniqueId(); // Ensure ID is set
-                    deviceRole = parsedState.deviceRole || 'unknown';
-                    pairingData = parsedState.pairingData;
-                    products = parsedState.products || [];
-                    console.log("State loaded from Local Storage.");
-                    return true;
+                // Load device info
+                const deviceInfo = JSON.parse(localStorage.getItem(LS_KEY_DEVICE_INFO));
+                if (deviceInfo) {
+                    deviceInstanceId = deviceInfo.deviceInstanceId;
+                    deviceRole = deviceInfo.deviceRole;
+                } else {
+                    deviceInstanceId = generateUniqueId(); // Generate new if not found
+                    deviceRole = 'unknown';
                 }
+
+                // Load current pairing session
+                currentPairing = JSON.parse(localStorage.getItem(LS_KEY_CURRENT_PAIRING_SESSION));
+
+                // Load products
+                products = JSON.parse(localStorage.getItem('supermarketApp_products')) || [];
+
+                console.log("State loaded from Local Storage:", { deviceInstanceId, deviceRole, currentPairing, products });
+                return true;
             } catch (e) {
                 console.error("Error loading from Local Storage:", e);
                 showNotification("Errore nel caricamento dei dati locali.", 'error');
@@ -366,82 +384,136 @@
         const resetAppStateAndGoToRoleSelection = () => {
             deviceInstanceId = generateUniqueId(); // Generate a new ID for the new session
             deviceRole = 'unknown';
-            pairingData = null;
+            currentPairing = null;
             products = [];
-            localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear all saved state
+            localStorage.removeItem(LS_KEY_DEVICE_INFO);
+            localStorage.removeItem(LS_KEY_ACTIVE_DEVICES);
+            localStorage.removeItem(LS_KEY_CURRENT_PAIRING_SESSION);
+            localStorage.removeItem('supermarketApp_products');
             showStep(0); // Go back to role selection
             showNotification('Stato resettato. Seleziona il tuo ruolo.', 'info');
         };
 
-        // --- Pairing Logic ---
+        // --- Device Discovery and Pairing Logic ---
 
-        const handleAutomaticPairing = async () => {
-            // Ensure deviceInstanceId is set before proceeding
-            if (!deviceInstanceId) {
-                deviceInstanceId = generateUniqueId();
-                saveStateToLocalStorage(); // Save the newly generated ID
-            }
+        const updateActiveDevices = () => {
+            let activeDevices = JSON.parse(localStorage.getItem(LS_KEY_ACTIVE_DEVICES)) || {};
+            const now = Date.now();
 
-            // Always re-read the latest state from Local Storage before acting
-            loadStateFromLocalStorage();
-
-            if (deviceRole === 'tablet') {
-                // Tablet's responsibility: create/maintain the pairing session
-                if (!pairingData || pairingData.tabletDeviceId !== deviceInstanceId || pairingData.isPaired) {
-                    // Create a new session if none exists for this tablet, or if it's already paired
-                    pairingData = {
-                        id: generateUniqueId(),
-                        tabletDeviceId: deviceInstanceId,
-                        phoneDeviceId: null,
-                        isPaired: false,
-                        scannedProductId: null,
-                        lastScannedAt: null,
-                        createdAt: new Date()
-                    };
-                    saveStateToLocalStorage();
-                    showNotification('Tablet pronto per l\'accoppiamento.', 'info');
-                    console.log("Tablet created new pairing session:", pairingData);
-                } else {
-                    // Reuse existing unpaired session for this tablet
-                    showNotification('Tablet in attesa di accoppiamento.', 'info');
-                    console.log("Tablet reusing existing pairing session:", pairingData);
-                }
-                document.getElementById('pairing-status').textContent = `ID Sessione: ${pairingData.id}`;
-                document.getElementById('pairing-status').classList.remove('hidden');
-
-            } else if (deviceRole === 'phone') {
-                // Phone's responsibility: find and join an unpaired tablet session
-                // We need to find the *latest* unpaired session created by a tablet.
-                // In a real scenario, this would involve a server. Here, we assume
-                // the tablet has broadcasted its session and it's in Local Storage.
-
-                if (pairingData && pairingData.tabletDeviceId && !pairingData.isPaired) {
-                    // Found an unpaired session initiated by a tablet
-                    pairingData = {
-                        ...pairingData,
-                        phoneDeviceId: deviceInstanceId,
-                        isPaired: true,
-                        pairedAt: new Date()
-                    };
-                    saveStateToLocalStorage();
-                    showNotification('Telefono accoppiato con successo!', 'success');
-                    console.log("Phone paired to session:", pairingData);
-                    document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
-                    document.getElementById('pairing-status').classList.remove('hidden');
-                    setTimeout(() => showStep(2), 1500); // Move to main app after a short delay
-                } else {
-                    showNotification('In attesa che il tablet si colleghi o generi una sessione.', 'info');
-                    document.getElementById('pairing-status').textContent = `In attesa di sessione tablet...`;
-                    document.getElementById('pairing-status').classList.remove('hidden');
-                    console.log("Phone waiting for tablet session.");
+            // Remove stale devices
+            for (const id in activeDevices) {
+                if (now - activeDevices[id].timestamp > STALE_DEVICE_TIMEOUT_MS) {
+                    delete activeDevices[id];
                 }
             }
 
-            // Broadcast update to other tabs (important for synchronization)
+            // Add/update current device's presence
+            activeDevices[deviceInstanceId] = {
+                role: deviceRole,
+                timestamp: now
+            };
+
+            localStorage.setItem(LS_KEY_ACTIVE_DEVICES, JSON.stringify(activeDevices));
+            console.log("Active devices updated:", activeDevices);
+
+            // Notify other tabs
             window.postMessage({
                 type: PAIRING_MESSAGE_TYPE,
-                action: 'pairing_status_changed'
+                action: 'active_devices_updated'
             }, window.location.origin);
+        };
+
+        const handlePairingDiscovery = () => {
+            if (deviceRole === 'unknown') return; // Cannot pair if role is not set
+
+            updateActiveDevices(); // Register self and clean up stale devices
+
+            if (deviceRole === 'tablet') {
+                renderAvailablePhones();
+                // If already paired, transition to main app
+                if (currentPairing && currentPairing.isPaired && currentPairing.tabletDeviceId === deviceInstanceId) {
+                    showStep(2);
+                    showNotification('Tablet già accoppiato.', 'success');
+                } else {
+                    showNotification('Tablet in attesa di selezione telefono.', 'info');
+                }
+            } else if (deviceRole === 'phone') {
+                // Phone just waits for tablet to initiate pairing
+                // It will react to 'pairing_initiated' message or on next loadStateFromLocalStorage
+                if (currentPairing && currentPairing.isPaired && currentPairing.phoneDeviceId === deviceInstanceId) {
+                    showStep(2);
+                    showNotification('Telefono già accoppiato.', 'success');
+                } else {
+                    showNotification('Telefono in attesa di essere accoppiato dal tablet.', 'info');
+                }
+            }
+        };
+
+        const renderAvailablePhones = () => {
+            const phonesListContainer = document.getElementById('phones-list-container');
+            if (!phonesListContainer) return;
+
+            const activeDevices = JSON.parse(localStorage.getItem(LS_KEY_ACTIVE_DEVICES)) || {};
+            let availablePhones = Object.values(activeDevices).filter(device =>
+                device.role === 'phone' && device.deviceId !== deviceInstanceId &&
+                (!currentPairing || (currentPairing.phoneDeviceId !== device.deviceId && currentPairing.tabletDeviceId !== deviceInstanceId)) // Only show phones not currently in *this* pairing session
+            );
+
+            phonesListContainer.innerHTML = ''; // Clear previous list
+
+            if (availablePhones.length === 0) {
+                phonesListContainer.innerHTML = `<li class="text-gray-500 dark:text-gray-400">Nessun telefono disponibile.</li>`;
+            } else {
+                availablePhones.forEach(phone => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-md shadow-sm';
+                    listItem.innerHTML = `
+                        <span class="text-gray-800 dark:text-gray-200">Telefono (ID: ${phone.deviceId.substring(0, 8)}...)</span>
+                        <button class="pair-button bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-md text-sm" data-phone-id="${phone.deviceId}">
+                            Accoppia
+                        </button>
+                    `;
+                    phonesListContainer.appendChild(listItem);
+                });
+
+                // Add event listeners to new pair buttons
+                document.querySelectorAll('.pair-button').forEach(button => {
+                    button.onclick = (event) => {
+                        const phoneIdToPair = event.target.dataset.phoneId;
+                        initiatePairing(phoneIdToPair);
+                    };
+                });
+            }
+        };
+
+        const initiatePairing = (phoneIdToPair) => {
+            if (deviceRole !== 'tablet') {
+                showNotification('Solo il tablet può avviare l\'accoppiamento.', 'error');
+                return;
+            }
+
+            // Create/update the pairing session
+            currentPairing = {
+                id: generateUniqueId(),
+                tabletDeviceId: deviceInstanceId,
+                phoneDeviceId: phoneIdToPair,
+                isPaired: true,
+                scannedProductId: null,
+                lastScannedAt: null,
+                createdAt: new Date()
+            };
+            saveStateToLocalStorage();
+            showNotification(`Accoppiamento avviato con il telefono ${phoneIdToPair.substring(0, 8)}...`, 'success');
+            console.log("Pairing initiated:", currentPairing);
+
+            // Notify all tabs about the new pairing
+            window.postMessage({
+                type: PAIRING_MESSAGE_TYPE,
+                action: 'pairing_initiated',
+                pairingId: currentPairing.id
+            }, window.location.origin);
+
+            showStep(2); // Move to main app
         };
 
         // --- Event Listeners ---
@@ -553,16 +625,16 @@
             loadStateFromLocalStorage();
 
             // Check if pairingData exists and is for the correct pair and roles
-            if (!pairingData || !pairingData.id || !pairingData.isPaired ||
-                pairingData.tabletDeviceId === null || pairingData.phoneDeviceId !== deviceInstanceId) {
+            if (!currentPairing || !currentPairing.id || !currentPairing.isPaired ||
+                currentPairing.tabletDeviceId === null || currentPairing.phoneDeviceId !== deviceInstanceId) {
                 showNotification('Errore: Il telefono non è accoppiato con un tablet valido.', 'error');
                 setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
                 return;
             }
 
-            // Update the pairingData with the scanned product ID
-            pairingData.scannedProductId = scanInput;
-            pairingData.lastScannedAt = new Date();
+            // Update the currentPairing with the scanned product ID
+            currentPairing.scannedProductId = scanInput;
+            currentPairing.lastScannedAt = new Date();
             saveStateToLocalStorage(); // Save state after updating scanned product
 
             showNotification(`Codice "${scanInput}" inviato al tablet.`, 'success');
@@ -573,7 +645,7 @@
             window.postMessage({
                 type: PAIRING_MESSAGE_TYPE,
                 action: 'product_scanned',
-                pairingId: pairingData.id,
+                pairingId: currentPairing.id,
                 scannedProductId: scanInput
             }, window.location.origin);
         });
@@ -581,11 +653,11 @@
 
         // --- Initial Setup on Window Load ---
         window.onload = () => {
-            // Load state from local storage. This will populate deviceInstanceId, deviceRole, pairingData, products.
-            const stateLoaded = loadStateFromLocalStorage();
+            // Load state from local storage. This will populate deviceInstanceId, deviceRole, currentPairing, products.
+            loadStateFromLocalStorage();
 
-            // If no state was loaded, or if deviceInstanceId is not set (first time visit)
-            if (!stateLoaded || !deviceInstanceId) {
+            // If deviceInstanceId is not set (first time visit or cleared local storage)
+            if (!deviceInstanceId) {
                 deviceInstanceId = generateUniqueId(); // Assign a fresh ID for this instance
                 saveStateToLocalStorage(); // Save this new ID immediately
                 console.log("New session instance ID:", deviceInstanceId);
@@ -598,14 +670,17 @@
                 showStep(0); // Show role selection if not chosen
             } else {
                 // If role is known, proceed to pairing or main app based on pairing status
-                if (pairingData && pairingData.isPaired &&
-                    ((deviceRole === 'tablet' && pairingData.tabletDeviceId === deviceInstanceId) ||
-                     (deviceRole === 'phone' && pairingData.phoneDeviceId === deviceInstanceId))) {
+                if (currentPairing && currentPairing.isPaired &&
+                    ((deviceRole === 'tablet' && currentPairing.tabletDeviceId === deviceInstanceId) ||
+                     (deviceRole === 'phone' && currentPairing.phoneDeviceId === deviceInstanceId))) {
                     showStep(2); // Already paired, go to main app
                 } else {
                     showStep(1); // Role chosen but not paired, go to pairing step
                 }
             }
+
+            // Set up a periodic check for active devices (for discovery)
+            setInterval(updateActiveDevices, 5000); // Every 5 seconds
 
             // Add listener for messages from other tabs (for pairing updates)
             window.addEventListener('message', (event) => {
@@ -615,16 +690,24 @@
                     // Re-load the state from local storage to synchronize with the latest changes
                     loadStateFromLocalStorage();
 
-                    // After loading state, re-evaluate the current step to react to pairing changes
-                    if (currentStep !== 2) { // Only re-evaluate if not already in main app
-                        if (pairingData && pairingData.isPaired &&
-                            ((deviceRole === 'tablet' && pairingData.tabletDeviceId === deviceInstanceId) ||
-                             (deviceRole === 'phone' && pairingData.phoneDeviceId === deviceInstanceId))) {
+                    // Handle different message actions
+                    if (event.data.action === 'active_devices_updated') {
+                        if (deviceRole === 'tablet' && currentStep === 1) {
+                            renderAvailablePhones(); // Update list of phones
+                        }
+                        // Phone will re-evaluate its pairing status on next handlePairingDiscovery call
+                    } else if (event.data.action === 'pairing_initiated' || event.data.action === 'product_scanned') {
+                        // If a pairing was initiated or a product scanned, re-evaluate state
+                        if (currentPairing && currentPairing.isPaired &&
+                            ((deviceRole === 'tablet' && currentPairing.tabletDeviceId === deviceInstanceId) ||
+                             (deviceRole === 'phone' && currentPairing.phoneDeviceId === deviceInstanceId))) {
                             showStep(2); // Paired, go to main app
-                            showNotification('Dispositivi accoppiati con successo!', 'success');
+                            if (event.data.action === 'pairing_initiated') {
+                                showNotification('Dispositivi accoppiati con successo!', 'success');
+                            }
                         } else if (currentStep === 1) {
                             // If still in pairing step, and not yet paired, re-trigger pairing logic
-                            handleAutomaticPairing();
+                            handlePairingDiscovery();
                         }
                     }
                 }
