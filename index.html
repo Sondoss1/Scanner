@@ -407,8 +407,9 @@
                 }
             }
 
-            // Add/update current device's presence
+            // Add/update current device's presence, ensuring deviceInstanceId is part of the stored object
             activeDevices[deviceInstanceId] = {
+                id: deviceInstanceId, // Explicitly add id to the object
                 role: deviceRole,
                 timestamp: now
             };
@@ -455,8 +456,8 @@
 
             const activeDevices = JSON.parse(localStorage.getItem(LS_KEY_ACTIVE_DEVICES)) || {};
             let availablePhones = Object.values(activeDevices).filter(device =>
-                device.role === 'phone' && device.deviceId !== deviceInstanceId &&
-                (!currentPairing || (currentPairing.phoneDeviceId !== device.deviceId && currentPairing.tabletDeviceId !== deviceInstanceId)) // Only show phones not currently in *this* pairing session
+                device.role === 'phone' && device.id !== deviceInstanceId && // Use device.id now
+                (!currentPairing || (currentPairing.phoneDeviceId !== device.id && currentPairing.tabletDeviceId !== deviceInstanceId)) // Use device.id
             );
 
             phonesListContainer.innerHTML = ''; // Clear previous list
@@ -468,8 +469,8 @@
                     const listItem = document.createElement('li');
                     listItem.className = 'flex items-center justify-between p-2 bg-gray-100 dark:bg-gray-700 rounded-md shadow-sm';
                     listItem.innerHTML = `
-                        <span class="text-gray-800 dark:text-gray-200">Telefono (ID: ${phone.deviceId.substring(0, 8)}...)</span>
-                        <button class="pair-button bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-md text-sm" data-phone-id="${phone.deviceId}">
+                        <span class="text-gray-800 dark:text-gray-200">Telefono (ID: ${phone.id.substring(0, 8)}...)</span>
+                        <button class="pair-button bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-md text-sm" data-phone-id="${phone.id}">
                             Accoppia
                         </button>
                     `;
