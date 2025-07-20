@@ -184,7 +184,10 @@
     </div>
 
     <!-- Step 4: Tablet Main App -->
-    <div id="tablet-app" class="w-full max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden">
+    <div id="tablet-app" class="w-full max-w-4xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 hidden relative">
+        <button id="home-button-tablet" class="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+            Home
+        </button>
         <h2 class="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-gray-100">Cassa Supermercato (Tablet)</h2>
         <p id="tablet-pairing-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
 
@@ -230,7 +233,10 @@
     </div>
 
     <!-- Step 4: Phone Main App -->
-    <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden">
+    <div id="phone-app" class="w-full max-w-md bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden relative">
+        <button id="home-button-phone" class="absolute top-4 left-4 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+            Home
+        </button>
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Scanner Telefono</h2>
         <p id="phone-pairing-status" class="text-center text-green-600 dark:text-green-400 mb-6 font-semibold hidden"></p>
 
@@ -281,7 +287,7 @@
 
         // --- Utility Functions ---
 
-        // Simple ID generator (used for products and pairing sessions, not for userId anymore)
+        // Simple ID generator (used for products and pairing sessions)
         const generateUniqueId = () => crypto.randomUUID();
 
         // --- UI Management Functions ---
@@ -409,8 +415,8 @@
                         // Proceed to appropriate step based on loaded data
                         if (userData.isRegistered) {
                             if (pairingData && pairingData.isPaired &&
-                                ((deviceType === 'tablet' && pairingData.tabletId === userId) ||
-                                 (deviceType === 'phone' && pairingData.phoneId === userId))) {
+                                ((deviceType === 'tablet' && pairingData.user1Id === userId && pairingData.user2Id === ALLOWED_USERS_DATA[1].id) || // Tablet is Francesco, paired with d
+                                 (deviceType === 'phone' && pairingData.user2Id === userId && pairingData.user1Id === ALLOWED_USERS_DATA[0].id))) { // Phone is d, paired with Francesco
                                 showStep(4); // Paired, go to main app
                             } else {
                                 showStep(3); // Registered, go to pairing (will auto-pair)
@@ -456,59 +462,93 @@
             // Always re-read the latest state from Local Storage before acting
             loadStateFromLocalStorage();
 
-            if (deviceType === 'tablet') {
-                // Tablet's responsibility: create/maintain the pairing session
-                if (!pairingData || pairingData.tabletId !== userId || pairingData.isPaired) {
-                    // If no pairing data, or it's for another tablet, or it's already paired, create a new one
-                    pairingId = generateUniqueId();
-                    pairingData = {
-                        id: pairingId,
-                        tabletId: userId,
-                        phoneId: null,
-                        isPaired: false,
-                        createdAt: new Date()
-                    };
-                    saveStateToLocalStorage();
-                    showNotification('Tablet pronto per l\'accoppiamento.', 'info');
-                    console.log("Tablet created new pairing session:", pairingData);
-                } else {
-                    // Reuse existing unpaired session
-                    pairingId = pairingData.id;
-                    showNotification('Tablet in attesa di accoppiamento.', 'info');
-                    console.log("Tablet reusing existing pairing session:", pairingData);
+            // Scenario 1: Current user is Francesco Notaro
+            if (userId === ALLOWED_USERS_DATA[0].id) { // Francesco Notaro
+                if (deviceType === 'tablet') {
+                    // Tablet (Francesco): Responsible for initiating the session
+                    if (!pairingData || pairingData.user1Id !== userId || pairingData.isPaired) {
+                        // Create a new session if none exists for Francesco as user1, or if it's already paired
+                        pairingId = generateUniqueId();
+                        pairingData = {
+                            id: pairingId,
+                            user1Id: userId, // Francesco
+                            user2Id: null,   // Waiting for 'd'
+                            isPaired: false,
+                            scannedProductId: null,
+                            lastScannedAt: null,
+                            createdAt: new Date()
+                        };
+                        saveStateToLocalStorage();
+                        showNotification('Tablet (Francesco) pronto per l\'accoppiamento con Telefono (d).', 'info');
+                        console.log("Tablet (Francesco) created new pairing session:", pairingData);
+                    } else {
+                        // Reuse existing unpaired session for Francesco
+                        pairingId = pairingData.id;
+                        showNotification('Tablet (Francesco) in attesa di accoppiamento con Telefono (d).', 'info');
+                        console.log("Tablet (Francesco) reusing existing pairing session:", pairingData);
+                    }
+                    document.getElementById('pairing-status').textContent = `ID Sessione: ${pairingId}`;
+                    document.getElementById('pairing-status').classList.remove('hidden');
+
+                } else if (deviceType === 'phone') {
+                    // Phone (Francesco): This is not the expected role for Francesco in this specific pairing.
+                    // It should wait for 'd' to be the phone.
+                    if (pairingData && pairingData.user1Id === ALLOWED_USERS_DATA[1].id && pairingData.user2Id === userId && pairingData.isPaired) {
+                         showNotification('Telefono (Francesco) già accoppiato con Tablet (d).', 'success');
+                         document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
+                         document.getElementById('pairing-status').classList.remove('hidden');
+                         setTimeout(() => showStep(4), 1500);
+                    } else {
+                         showNotification('Telefono (Francesco) in attesa di sessione con Tablet (d).', 'info');
+                         document.getElementById('pairing-status').textContent = `In attesa di sessione tablet...`;
+                         document.getElementById('pairing-status').classList.remove('hidden');
+                    }
                 }
-                document.getElementById('pairing-status').textContent = `ID Sessione: ${pairingId}`;
+            }
+            // Scenario 2: Current user is 'd'
+            else if (userId === ALLOWED_USERS_DATA[1].id) { // User 'd'
+                if (deviceType === 'phone') {
+                    // Phone (d): Looks for a session initiated by Francesco (tablet) and joins it
+                    if (pairingData && pairingData.user1Id === ALLOWED_USERS_DATA[0].id && !pairingData.isPaired) {
+                        pairingId = pairingData.id;
+                        pairingData = {
+                            ...pairingData,
+                            user2Id: userId, // 'd'
+                            isPaired: true,
+                            pairedAt: new Date()
+                        };
+                        saveStateToLocalStorage();
+                        showNotification('Telefono (d) accoppiato con successo con Tablet (Francesco)!', 'success');
+                        console.log("Phone (d) paired to session:", pairingData);
+                        document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingId}`;
+                        document.getElementById('pairing-status').classList.remove('hidden');
+                        setTimeout(() => showStep(4), 1500);
+                    } else {
+                        showNotification('Telefono (d) in attesa che il Tablet (Francesco) si colleghi o generi una sessione.', 'info');
+                        document.getElementById('pairing-status').textContent = `In attesa di sessione tablet...`;
+                        document.getElementById('pairing-status').classList.remove('hidden');
+                        console.log("Phone (d) waiting for Tablet (Francesco) session.");
+                    }
+                } else if (deviceType === 'tablet') {
+                    // Tablet (d): This is not the expected role for 'd' in this specific pairing.
+                    // It should wait for Francesco to be the tablet.
+                    if (pairingData && pairingData.user1Id === ALLOWED_USERS_DATA[0].id && pairingData.user2Id === userId && pairingData.isPaired) {
+                         showNotification('Tablet (d) già accoppiato con Telefono (Francesco).', 'success');
+                         document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
+                         document.getElementById('pairing-status').classList.remove('hidden');
+                         setTimeout(() => showStep(4), 1500);
+                    } else {
+                        showNotification('Tablet (d) in attesa di sessione con Telefono (Francesco).', 'info');
+                        document.getElementById('pairing-status').textContent = `In attesa di sessione telefono...`;
+                        document.getElementById('pairing-status').classList.remove('hidden');
+                    }
+                }
+            }
+            // Scenario 3: Other users or unexpected user/device combinations
+            else {
+                showNotification('Utente non riconosciuto per l\'accoppiamento automatico.', 'error');
+                document.getElementById('pairing-status').textContent = `Utente non riconosciuto.`;
                 document.getElementById('pairing-status').classList.remove('hidden');
-
-            } else if (deviceType === 'phone') {
-                // Phone's responsibility: find and join an unpaired tablet session
-                let foundUnpairedSession = null;
-
-                // Look for an unpaired session where this user is the tablet
-                if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired) {
-                    foundUnpairedSession = pairingData;
-                }
-
-                if (foundUnpairedSession) {
-                    pairingId = foundUnpairedSession.id;
-                    pairingData = {
-                        ...foundUnpairedSession,
-                        phoneId: userId,
-                        isPaired: true,
-                        pairedAt: new Date()
-                    };
-                    saveStateToLocalStorage();
-                    showNotification('Telefono accoppiato con successo!', 'success');
-                    console.log("Phone paired to session:", pairingData);
-                    document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingId}`;
-                    document.getElementById('pairing-status').classList.remove('hidden');
-                    setTimeout(() => showStep(4), 1500); // Move to main app after a short delay
-                } else {
-                    showNotification('In attesa che il tablet si colleghi o generi una sessione.', 'info');
-                    document.getElementById('pairing-status').textContent = `In attesa di sessione tablet...`;
-                    document.getElementById('pairing-status').classList.remove('hidden');
-                    console.log("Phone waiting for tablet session.");
-                }
             }
 
             // Broadcast update to other tabs (important for synchronization)
@@ -551,9 +591,20 @@
             setButtonLoading('registration-button', false, 'Continua');
         });
 
-        // Regenerate Code Button is removed from UI and logic.
+        // Add Home button listeners
+        document.getElementById('home-button-tablet').addEventListener('click', () => {
+            resetAppState(); // Clear all session data
+            localStorage.removeItem(LOCAL_STORAGE_KEY); // Ensure complete reset of local storage
+            showStep(1); // Go back to registration
+            showNotification('Tornato alla schermata iniziale.', 'info');
+        });
 
-        // Phone Scan Code Form is removed from UI and logic.
+        document.getElementById('home-button-phone').addEventListener('click', () => {
+            resetAppState(); // Clear all session data
+            localStorage.removeItem(LOCAL_STORAGE_KEY); // Ensure complete reset of local storage
+            showStep(1); // Go back to registration
+            showNotification('Tornato alla schermata iniziale.', 'info');
+        });
 
         // Add Product Form (Tablet) - unchanged
         document.getElementById('add-product-form').addEventListener('submit', async (e) => {
@@ -605,8 +656,10 @@
             // Always re-read the latest state from Local Storage to ensure synchronization
             loadStateFromLocalStorage(); // This will update global pairingData if needed
 
-            if (!pairingData || !pairingData.id || !pairingData.isPaired || pairingData.tabletId !== userId) {
-                showNotification('Errore: Il telefono non è accoppiato con un tablet valido.', 'error');
+            // Check if pairingData exists and is for the correct pair and roles
+            if (!pairingData || !pairingData.id || !pairingData.isPaired ||
+                !(pairingData.user1Id === ALLOWED_USERS_DATA[0].id && pairingData.user2Id === userId)) { // user1 is Francesco, user2 is 'd' (current phone)
+                showNotification('Errore: Il telefono non è accoppiato con un tablet valido (Francesco).', 'error');
                 setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
                 return;
             }
@@ -647,7 +700,7 @@
             // If after loading, userData is null, it means no valid user was logged in.
             // Pre-fill telegram for convenience and show registration.
             if (!userData) {
-                document.getElementById('telegram').value = ALLOWED_USERS_DATA[0].telegram;
+                document.getElementById('telegram').value = ALLOWED_USERS_DATA[0].telegram; // Default pre-fill to Francesco's telegram
                 console.log("No valid user loaded - Starting at registration.");
                 showStep(1);
             } else {
@@ -669,8 +722,8 @@
                     // After loading state, re-evaluate the current step to react to pairing changes
                     if (userData && userData.isRegistered) { // Ensure user is still logged in
                          if (pairingData && pairingData.isPaired &&
-                            ((deviceType === 'tablet' && pairingData.tabletId === userId) ||
-                             (deviceType === 'phone' && pairingData.phoneId === userId))) {
+                            ((deviceType === 'tablet' && pairingData.user1Id === userId && pairingData.user2Id === ALLOWED_USERS_DATA[1].id) ||
+                             (deviceType === 'phone' && pairingData.user2Id === userId && pairingData.user1Id === ALLOWED_USERS_DATA[0].id))) {
                             showStep(4); // Paired, go to main app
                             showNotification('Dispositivi accoppiati con successo!', 'success');
                         } else if (currentStep === 3) {
