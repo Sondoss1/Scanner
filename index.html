@@ -668,6 +668,9 @@
 
             // Explicitly load the latest pairing data from Local Storage before checking
             const latestPairingData = loadPairingDataFromLocalStorage();
+            console.log("Phone Scan Input:", scanInput);
+            console.log("Phone Latest Pairing Data from LS:", latestPairingData);
+
 
             if (latestPairingData && latestPairingData.pairingCode === scanInput && !latestPairingData.isPaired) {
                 // Update local pairing data to mark as paired
@@ -681,6 +684,14 @@
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
                 // The updatePairingDataLocally function will trigger showStep(4)
             } else {
+                console.log("Mismatch details:");
+                console.log("  latestPairingData exists:", !!latestPairingData);
+                if (latestPairingData) {
+                    console.log("  latestPairingData.pairingCode:", latestPairingData.pairingCode);
+                    console.log("  latestPairingData.isPaired:", latestPairingData.isPaired);
+                    console.log("  Code match:", latestPairingData.pairingCode === scanInput);
+                    console.log("  Is already paired:", latestPairingData.isPaired);
+                }
                 showNotification('Codice non valido o nessun tablet attivo con questo codice. Riprova.', 'error');
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
             }
@@ -766,12 +777,12 @@
             const stateLoaded = loadStateFromLocalStorage();
             if (!stateLoaded) {
                 // If no state was loaded or the loaded user was not allowed,
-                // we need to ensure userId is set to a *valid* allowed user ID for the session.
-                // For simplicity, we'll default to the first allowed user's ID.
-                userId = ALLOWED_USERS_DATA[0].id;
-                document.getElementById('telegram').value = ALLOWED_USERS_DATA[0].telegram; // Pre-fill telegram for convenience
-                console.log("New Session or unauthorized user - Forcing registration for an allowed user.");
-                showStep(1); // Start at registration for the allowed user
+                // userId will still be null from global declaration.
+                // For convenience, pre-fill the form with the first allowed user's telegram.
+                // userId will be set upon successful registration.
+                document.getElementById('telegram').value = ALLOWED_USERS_DATA[0].telegram;
+                console.log("New Session or unauthorized user - Starting at registration.");
+                showStep(1); // Start at registration
             }
 
             // Add listener for messages from other tabs (for pairing)
