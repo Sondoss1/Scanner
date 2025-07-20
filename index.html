@@ -166,29 +166,19 @@
     <div id="pairing-step" class="w-full max-w-xl bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 flex flex-col items-center hidden">
         <h2 class="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-gray-100">Accoppiamento Dispositivi</h2>
 
+        <!-- UI elements for manual code removed -->
         <div id="tablet-pairing-ui" class="flex flex-col items-center w-full hidden">
             <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
-                Inserisci questo codice sul tuo telefono:
+                Tablet in attesa di accoppiamento...
             </p>
-            <div id="pairing-code-display" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-inner mb-4">
-                <p class="text-5xl font-bold text-blue-600 dark:text-blue-400">000</p>
-            </div>
-            <p id="pairing-id-display" class="mt-4 text-sm text-gray-500 dark:text-gray-400">ID Accoppiamento: N/A</p>
-            <button id="regenerate-code-button" class="mt-6 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
-                Rigenera Codice
-            </button>
+            <!-- Removed pairing-code-display and regenerate-code-button -->
         </div>
 
         <div id="phone-pairing-ui" class="flex flex-col items-center w-full hidden">
             <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
-                Inserisci il codice di 3 cifre visualizzato sul tablet:
+                Telefono in attesa di sessione tablet...
             </p>
-            <form id="scan-code-form" class="w-full flex flex-col items-center space-y-4">
-                <input type="text" id="scan-input" placeholder="Codice di 3 cifre" maxlength="3" pattern="\d{3}" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
-                <button type="submit" id="scan-code-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
-                    Accoppia Dispositivo
-                </button>
-            </form>
+            <!-- Removed scan-code-form and scan-input -->
         </div>
         <p id="pairing-status" class="mt-4 text-center text-green-600 dark:text-green-400 font-bold hidden"></p>
     </div>
@@ -263,10 +253,9 @@
         let currentStep = 1;
         let userData = null;
         let pairingId = null;
-        let pairingData = null; // Stores the active pairing session data
-        let products = []; // Stores products created on the tablet
-        let hasGeneratedCodeForCurrentSession = false; // To prevent multiple code generations on tablet
-        let notificationTimeout; // For managing notification visibility
+        let pairingData = null; // Stores the active pairing session data for the current userId
+        let products = [];
+        let notificationTimeout;
 
         // --- Predefined Allowed Users for Local Access ---
         const ALLOWED_USERS_DATA = [
@@ -294,11 +283,6 @@
 
         // Simple ID generator (used for products and pairing sessions, not for userId anymore)
         const generateUniqueId = () => crypto.randomUUID();
-
-        // Function to generate a 3-digit numeric code
-        const generateThreeDigitCode = () => {
-            return Math.floor(100 + Math.random() * 900).toString();
-        };
 
         // --- UI Management Functions ---
 
@@ -345,11 +329,13 @@
                     if (deviceType === 'tablet') {
                         document.getElementById('tablet-pairing-ui').classList.remove('hidden');
                         document.getElementById('phone-pairing-ui').classList.add('hidden');
-                        // Ensure pairing code is generated/displayed when entering this step
-                        handleTabletCodeGeneration();
+                        // Trigger automatic pairing logic for tablet
+                        handleAutomaticPairing();
                     } else {
                         document.getElementById('tablet-pairing-ui').classList.add('hidden');
                         document.getElementById('phone-pairing-ui').classList.remove('hidden');
+                        // Trigger automatic pairing logic for phone
+                        handleAutomaticPairing();
                     }
                     break;
                 case 4:
@@ -379,15 +365,14 @@
         // Pairing data will attempt to synchronize between tabs using window.postMessage.
 
         const LOCAL_STORAGE_KEY = 'supermarketApp_state';
-        const PAIRING_MESSAGE_TYPE = 'supermarketApp_pairing_code';
+        const PAIRING_MESSAGE_TYPE = 'supermarketApp_pairing_update'; // Generic update message
 
         const saveStateToLocalStorage = () => {
             const stateToSave = {
                 userId,
                 userData,
                 pairingData,
-                products,
-                hasGeneratedCodeForCurrentSession
+                products
             };
             try {
                 localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
@@ -398,63 +383,48 @@
             }
         };
 
-        // Helper to load only pairing data from local storage
-        const loadPairingDataFromLocalStorage = () => {
-            try {
-                const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-                if (savedState) {
-                    const parsedState = JSON.parse(savedState);
-                    return parsedState.pairingData;
-                }
-            } catch (e) {
-                console.error("Error loading pairing data from Local Storage:", e);
-            }
-            return null;
-        };
-
-
         const loadStateFromLocalStorage = () => {
             try {
                 const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
                 if (savedState) {
                     const parsedState = JSON.parse(savedState);
+                    // Re-assign global state variables from parsedState
+                    userId = parsedState.userId;
+                    userData = parsedState.userData;
+                    pairingData = parsedState.pairingData;
+                    products = parsedState.products || [];
 
-                    // Find if loaded user data matches any of the allowed users
+                    // Validate loaded user data against ALLOWED_USERS_DATA
                     const matchedUser = ALLOWED_USERS_DATA.find(allowedUser =>
-                        parsedState.userData &&
-                        parsedState.userData.name === allowedUser.name &&
-                        parsedState.userData.surname === allowedUser.surname &&
-                        parsedState.userData.password === allowedUser.password && // IMPORTANT: Not secure for real apps
-                        parsedState.userData.telegram === allowedUser.telegram
+                        userData &&
+                        userData.name === allowedUser.name &&
+                        userData.surname === allowedUser.surname &&
+                        userData.password === allowedUser.password &&
+                        userData.telegram === allowedUser.telegram &&
+                        userId === allowedUser.id // Ensure the userId also matches
                     );
 
                     if (matchedUser) {
-                        userId = matchedUser.id; // Assign the fixed ID for the matched allowed user
-                        userData = parsedState.userData; // Use the loaded user data
-                        pairingData = parsedState.pairingData;
-                        products = parsedState.products || [];
-                        hasGeneratedCodeForCurrentSession = parsedState.hasGeneratedCodeForCurrentSession || false;
-                        console.log("State loaded from Local Storage.");
-
-                        // If user data exists and is registered, proceed to the appropriate step
-                        if (userData && userData.isRegistered) {
-                            if (pairingData && pairingData.isPaired) {
-                                showStep(4);
+                        console.log("State loaded from Local Storage for allowed user:", userId);
+                        // Proceed to appropriate step based on loaded data
+                        if (userData.isRegistered) {
+                            if (pairingData && pairingData.isPaired &&
+                                ((deviceType === 'tablet' && pairingData.tabletId === userId) ||
+                                 (deviceType === 'phone' && pairingData.phoneId === userId))) {
+                                showStep(4); // Paired, go to main app
                             } else {
-                                showStep(3);
+                                showStep(3); // Registered, go to pairing (will auto-pair)
                             }
+                        } else {
+                            showStep(1); // Not registered, go to registration
                         }
-                        renderProductList(); // Re-render products after loading
-                        return true; // State was loaded and user is allowed
+                        renderProductList();
+                        return true;
                     } else {
-                        // If saved data doesn't match any allowed user, clear it and start fresh
-                        console.log("Loaded user data does not match any allowed user. Resetting state.");
-                        localStorage.removeItem(LOCAL_STORAGE_KEY);
-                        userData = null;
-                        pairingData = null;
-                        products = [];
-                        hasGeneratedCodeForCurrentSession = false;
-                        showStep(1); // Force registration for any allowed user
+                        console.log("Loaded user data does not match any allowed user or userId mismatch. Resetting state.");
+                        localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear invalid state
+                        resetAppState(); // Reset global state variables
+                        showStep(1); // Force registration
                         return false;
                     }
                 }
@@ -462,97 +432,99 @@
                 console.error("Error loading from Local Storage:", e);
                 showNotification("Errore nel caricamento dei dati locali.", 'error');
             }
-            // If no saved state or error, do not set userId here. It will be handled by initial load.
-            return false; // State was not loaded or not allowed
+            resetAppState(); // If no saved state or error, reset
+            return false;
         };
 
-        const updatePairingDataLocally = (newData) => {
-            pairingData = { ...pairingData, ...newData };
-            saveStateToLocalStorage(); // Save state after updating pairing data
-            console.log("Pairing data updated (local storage):", pairingData);
+        const resetAppState = () => {
+            userId = null;
+            userData = null;
+            pairingId = null;
+            pairingData = null;
+            products = [];
+        };
 
-            // Simulate onSnapshot listener for pairing data
-            if (pairingData && pairingData.isPaired) {
-                showNotification('Dispositivi accoppiati con successo!', 'success');
-                document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
-                document.getElementById('pairing-status').classList.remove('hidden');
-                setTimeout(() => showStep(4), 1500);
-            } else if (pairingData && !pairingData.isPaired && currentStep === 3) {
-                showNotification('In attesa che l\'altro dispositivo si connetta.', 'info');
-            } else if (!pairingData && currentStep === 3) {
-                showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
+        // --- Pairing Logic ---
+
+        const handleAutomaticPairing = async () => {
+            if (!userId) {
+                console.warn("Cannot handle automatic pairing: userId is not set.");
+                showNotification("Errore: Utente non loggato per l'accoppiamento.", 'error');
+                return;
             }
 
-            // Update scanned product on tablet (if this instance is a tablet)
-            if (deviceType === 'tablet' && pairingData && pairingData.scannedProductId) {
-                const foundProduct = products.find(p => p.barcode === pairingData.scannedProductId);
-                const scannedProductDetailsDiv = document.getElementById('scanned-product-details');
-                if (foundProduct) {
-                    scannedProductDetailsDiv.innerHTML = `
-                        <p><span class="font-medium">Nome:</span> ${foundProduct.name}</p>
-                        <p><span class="font-medium">Costo:</span> €${foundProduct.cost.toFixed(2)}</p>
-                        <p><span class="font-medium">Contenuto:</span> ${foundProduct.contents}</p>
-                        <p><span class="font-medium">Codice a Barre:</span> ${foundProduct.barcode}</p>
-                    `;
+            // Always re-read the latest state from Local Storage before acting
+            loadStateFromLocalStorage();
+
+            if (deviceType === 'tablet') {
+                // Tablet's responsibility: create/maintain the pairing session
+                if (!pairingData || pairingData.tabletId !== userId || pairingData.isPaired) {
+                    // If no pairing data, or it's for another tablet, or it's already paired, create a new one
+                    pairingId = generateUniqueId();
+                    pairingData = {
+                        id: pairingId,
+                        tabletId: userId,
+                        phoneId: null,
+                        isPaired: false,
+                        createdAt: new Date()
+                    };
+                    saveStateToLocalStorage();
+                    showNotification('Tablet pronto per l\'accoppiamento.', 'info');
+                    console.log("Tablet created new pairing session:", pairingData);
                 } else {
-                    scannedProductDetailsDiv.innerHTML = `<p class="text-center">Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.</p>`;
-                    showNotification(`Prodotto non trovato per il codice a barre: ${pairingData.scannedProductId}.`, 'error');
+                    // Reuse existing unpaired session
+                    pairingId = pairingData.id;
+                    showNotification('Tablet in attesa di accoppiamento.', 'info');
+                    console.log("Tablet reusing existing pairing session:", pairingData);
                 }
-            } else if (deviceType === 'tablet') {
-                document.getElementById('scanned-product-details').innerHTML = `<p class="text-center">In attesa di scansione dal telefono...</p>`;
+                document.getElementById('pairing-status').textContent = `ID Sessione: ${pairingId}`;
+                document.getElementById('pairing-status').classList.remove('hidden');
+
+            } else if (deviceType === 'phone') {
+                // Phone's responsibility: find and join an unpaired tablet session
+                let foundUnpairedSession = null;
+
+                // Look for an unpaired session where this user is the tablet
+                if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired) {
+                    foundUnpairedSession = pairingData;
+                }
+
+                if (foundUnpairedSession) {
+                    pairingId = foundUnpairedSession.id;
+                    pairingData = {
+                        ...foundUnpairedSession,
+                        phoneId: userId,
+                        isPaired: true,
+                        pairedAt: new Date()
+                    };
+                    saveStateToLocalStorage();
+                    showNotification('Telefono accoppiato con successo!', 'success');
+                    console.log("Phone paired to session:", pairingData);
+                    document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingId}`;
+                    document.getElementById('pairing-status').classList.remove('hidden');
+                    setTimeout(() => showStep(4), 1500); // Move to main app after a short delay
+                } else {
+                    showNotification('In attesa che il tablet si colleghi o generi una sessione.', 'info');
+                    document.getElementById('pairing-status').textContent = `In attesa di sessione tablet...`;
+                    document.getElementById('pairing-status').classList.remove('hidden');
+                    console.log("Phone waiting for tablet session.");
+                }
             }
+
+            // Broadcast update to other tabs (important for synchronization)
+            window.postMessage({
+                type: PAIRING_MESSAGE_TYPE,
+                action: 'pairing_status_changed',
+                userId: userId // Indicate which user's pairing data changed
+            }, window.location.origin);
         };
 
-        const addProductLocally = (newProduct) => {
-            products.push(newProduct);
-            saveStateToLocalStorage(); // Save state after adding product
-            console.log("Products updated (local storage):", products);
-            renderProductList();
-        };
+        // --- Event Listeners ---
 
-        const renderProductList = () => {
-            const container = document.getElementById('product-list-container');
-            if (!container) return;
-
-            if (products.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-700 dark:text-gray-300">Nessun prodotto registrato.</p>`;
-            } else {
-                let tableHtml = `
-                    <table class="min-w-full bg-white dark:bg-gray-700 rounded-lg shadow-md">
-                        <thead>
-                            <tr class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 uppercase text-sm leading-normal">
-                                <th class="py-3 px-6 text-left">Nome</th>
-                                <th class="py-3 px-6 text-left">Costo</th>
-                                <th class="py-3 px-6 text-left">Contenuto</th>
-                                <th class="py-3 px-6 text-left">Codice a Barre</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-gray-700 dark:text-gray-300 text-sm font-light">
-                `;
-                products.forEach(product => {
-                    tableHtml += `
-                        <tr class="border-b border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">
-                            <td class="py-3 px-6 text-left whitespace-nowrap">${product.name}</td>
-                            <td class="py-3 px-6 text-left">€${product.cost.toFixed(2)}</td>
-                            <td class="py-3 px-6 text-left">${product.contents}</td>
-                            <td class="py-3 px-6 text-left font-mono text-purple-600 dark:text-purple-300">${product.barcode}</td>
-                        </tr>
-                    `;
-                });
-                tableHtml += `
-                        </tbody>
-                    </table>
-                `;
-                container.innerHTML = tableHtml;
-            }
-        };
-
-        // --- Event Handlers ---
-
-        // Registration Form
+        // Registration Form (unchanged, sets userId and userData)
         document.getElementById('registration-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            showNotification('', 'info'); // Clear any old notification
+            showNotification('', 'info');
             setButtonLoading('registration-button', true, 'Continua');
 
             const name = document.getElementById('name').value;
@@ -560,7 +532,6 @@
             const password = document.getElementById('password').value;
             const telegram = document.getElementById('telegram').value;
 
-            // Check if entered credentials match any of the allowed users
             const matchedUser = ALLOWED_USERS_DATA.find(allowedUser =>
                 name === allowedUser.name &&
                 surname === allowedUser.surname &&
@@ -569,138 +540,25 @@
             );
 
             if (matchedUser) {
-                userId = matchedUser.id; // Set userId to the ID of the matched user
+                userId = matchedUser.id;
                 userData = { ...matchedUser, isRegistered: true, createdAt: new Date() };
-                saveStateToLocalStorage(); // Save state after successful registration
+                saveStateToLocalStorage();
                 showNotification('Registrazione completata con successo!', 'success');
-                showStep(3); // Directly move to pairing step
+                showStep(3); // Move to pairing step, which will now be automatic
             } else {
                 showNotification('Credenziali non valide. Solo gli utenti predefiniti possono accedere.', 'error');
             }
             setButtonLoading('registration-button', false, 'Continua');
         });
 
-        // Tablet Code Generation Logic (called by showStep(3) for tablet)
-        const handleTabletCodeGeneration = async () => {
-            // If already paired, no need to do anything with code generation.
-            if (pairingData && pairingData.isPaired) {
-                showNotification('Dispositivi accoppiati con successo!', 'success');
-                document.getElementById('pairing-status').textContent = `Accoppiato! ID Sessione: ${pairingData.id}`;
-                document.getElementById('pairing-status').classList.remove('hidden');
-                return;
-            }
+        // Regenerate Code Button is removed from UI and logic.
 
-            let currentPairingCode = null;
-            let currentPairingId = null;
+        // Phone Scan Code Form is removed from UI and logic.
 
-            // Check if there's existing UNPAIRED pairing data for THIS tablet with a 3-digit code.
-            // If not, or if the code is not 3 digits, force new generation.
-            if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired && pairingData.pairingCode && pairingData.pairingCode.length === 3) {
-                currentPairingCode = pairingData.pairingCode;
-                currentPairingId = pairingData.id;
-                showNotification('Codice esistente. Inserisci sul telefono.', 'info');
-                hasGeneratedCodeForCurrentSession = true;
-                console.log("Reusing existing 3-digit pairing code:", currentPairingCode, "and pairingId:", currentPairingId);
-
-            }
-            // Otherwise, generate a new code. This covers cases where no pairingData exists,
-            // or existing pairingData is not for this tablet, or existing pairingCode is not 3 digits.
-            else {
-                setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
-                currentPairingId = generateUniqueId();
-                currentPairingCode = generateThreeDigitCode(); // Ensure 3-digit code
-                hasGeneratedCodeForCurrentSession = true;
-                console.log("Generated new 3-digit pairing code:", currentPairingCode, "and new pairingId:", currentPairingId);
-            }
-
-            document.getElementById('pairing-code-display').querySelector('p').textContent = currentPairingCode;
-            document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${currentPairingId}`;
-            pairingId = currentPairingId; // Update global pairingId
-
-            // Store pairing data locally and update global state
-            pairingData = {
-                id: currentPairingId,
-                tabletId: userId,
-                pairingCode: currentPairingCode,
-                isPaired: false, // Always false when generated by tablet
-                createdAt: new Date()
-            };
-            saveStateToLocalStorage(); // Save state after updating pairingData
-
-            showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
-            setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
-
-            // Broadcast a notification to other tabs to re-read local storage
-            window.postMessage({
-                type: PAIRING_MESSAGE_TYPE,
-                action: 'pairing_code_updated',
-                pairingId: currentPairingId // Send the ID so receiver can check if it's the relevant one
-            }, window.location.origin);
-        };
-
-        // Regenerate Code Button
-        document.getElementById('regenerate-code-button').addEventListener('click', async () => {
-            setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
-            showNotification('', 'info'); // Clear any old notification
-            document.getElementById('pairing-status').classList.add('hidden');
-
-            // Clear local state to force new generation
-            pairingData = null;
-            pairingId = null;
-            hasGeneratedCodeForCurrentSession = false; // Allow new generation
-            await handleTabletCodeGeneration(); // Trigger new generation
-            setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
-        });
-
-        // Phone Scan Code Form
-        document.getElementById('scan-code-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            showNotification('', 'info'); // Clear any old notification
-            setButtonLoading('scan-code-button', true, 'Accoppia Dispositivo');
-
-            const scanInput = document.getElementById('scan-input').value;
-
-            if (!scanInput || scanInput.length !== 3 || !/^\d{3}$/.test(scanInput)) { // Check for 3 digits
-                showNotification('Inserisci un codice di 3 cifre valido.', 'error');
-                setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
-                return;
-            }
-
-            // Explicitly load the latest pairing data from Local Storage before checking
-            const latestPairingData = loadPairingDataFromLocalStorage();
-            console.log("Phone Scan Input:", scanInput);
-            console.log("Phone Latest Pairing Data from LS:", latestPairingData);
-
-
-            if (latestPairingData && latestPairingData.pairingCode === scanInput && !latestPairingData.isPaired) {
-                // Update local pairing data to mark as paired
-                updatePairingDataLocally({
-                    id: latestPairingData.id, // Ensure we use the correct pairing ID
-                    phoneId: userId,
-                    isPaired: true,
-                    pairedAt: new Date()
-                });
-                showNotification('Accoppiamento riuscito! Caricamento app...', 'success');
-                setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
-                // The updatePairingDataLocally function will trigger showStep(4)
-            } else {
-                console.log("Mismatch details:");
-                console.log("  latestPairingData exists:", !!latestPairingData);
-                if (latestPairingData) {
-                    console.log("  latestPairingData.pairingCode:", latestPairingData.pairingCode);
-                    console.log("  latestPairingData.isPaired:", latestPairingData.isPaired);
-                    console.log("  Code match:", latestPairingData.pairingCode === scanInput);
-                    console.log("  Is already paired:", latestPairingData.isPaired);
-                }
-                showNotification('Codice non valido o nessun tablet attivo con questo codice. Riprova.', 'error');
-                setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
-            }
-        });
-
-        // Add Product Form (Tablet)
+        // Add Product Form (Tablet) - unchanged
         document.getElementById('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            showNotification('', 'info'); // Clear any old notification
+            showNotification('', 'info');
             setButtonLoading('add-product-button', true, 'Aggiungi Prodotto');
 
             const productName = document.getElementById('productName').value;
@@ -713,16 +571,16 @@
                 return;
             }
 
-            const newBarcode = generateUniqueId().substring(0, 12).toUpperCase(); // Simulate a barcode
+            const newBarcode = generateUniqueId().substring(0, 12).toUpperCase();
             const newProduct = {
-                id: generateUniqueId(), // Local ID for the product
+                id: generateUniqueId(),
                 name: productName,
                 cost: parseFloat(productCost),
                 contents: productContents,
                 barcode: newBarcode,
                 createdAt: new Date()
             };
-            addProductLocally(newProduct); // Add to local products array
+            addProductLocally(newProduct);
             showNotification('Prodotto aggiunto con successo!', 'success');
             document.getElementById('productName').value = '';
             document.getElementById('productCost').value = '';
@@ -730,10 +588,10 @@
             setButtonLoading('add-product-button', false, 'Aggiungi Prodotto');
         });
 
-        // Barcode Scan Form (Phone)
+        // Barcode Scan Form (Phone) - logic updated to rely on automatic pairing
         document.getElementById('barcode-scan-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            showNotification('', 'info'); // Clear any old notification
+            showNotification('', 'info');
             setButtonLoading('barcode-scan-button', true, 'Invia al Tablet');
 
             const scanInput = document.getElementById('barcodeScan').value;
@@ -744,21 +602,31 @@
                 return;
             }
 
-            if (!pairingData || !pairingData.id || !pairingData.isPaired) {
-                showNotification('Errore: Il telefono non è accoppiato con un tablet.', 'error');
+            // Always re-read the latest state from Local Storage to ensure synchronization
+            loadStateFromLocalStorage(); // This will update global pairingData if needed
+
+            if (!pairingData || !pairingData.id || !pairingData.isPaired || pairingData.tabletId !== userId) {
+                showNotification('Errore: Il telefono non è accoppiato con un tablet valido.', 'error');
                 setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
                 return;
             }
 
             // Update the local pairingData with the scanned product ID
-            updatePairingDataLocally({
-                scannedProductId: scanInput,
-                lastScannedAt: new Date(),
-                phoneId: userId
-            });
+            pairingData.scannedProductId = scanInput;
+            pairingData.lastScannedAt = new Date();
+            saveStateToLocalStorage(); // Save state after updating scanned product
+
             showNotification(`Codice "${scanInput}" inviato al tablet.`, 'success');
-            document.getElementById('barcodeScan').value = ''; // Clear input after sending
+            document.getElementById('barcodeScan').value = '';
             setButtonLoading('barcode-scan-button', false, 'Invia al Tablet');
+
+            // Broadcast update to other tabs (especially the tablet)
+            window.postMessage({
+                type: PAIRING_MESSAGE_TYPE,
+                action: 'product_scanned',
+                pairingId: pairingData.id,
+                scannedProductId: scanInput
+            }, window.location.origin);
         });
 
 
@@ -773,30 +641,42 @@
             }
             console.log("Device Type Detected:", deviceType);
 
-            // Try to load state from local storage. If not found or not allowed, initialize new session.
+            // Load state from local storage. This will also determine the current step.
             const stateLoaded = loadStateFromLocalStorage();
-            if (!stateLoaded) {
-                // If no state was loaded or the loaded user was not allowed,
-                // userId will still be null from global declaration.
-                // For convenience, pre-fill the form with the first allowed user's telegram.
-                // userId will be set upon successful registration.
+
+            // If after loading, userData is null, it means no valid user was logged in.
+            // Pre-fill telegram for convenience and show registration.
+            if (!userData) {
                 document.getElementById('telegram').value = ALLOWED_USERS_DATA[0].telegram;
-                console.log("New Session or unauthorized user - Starting at registration.");
-                showStep(1); // Start at registration
+                console.log("No valid user loaded - Starting at registration.");
+                showStep(1);
+            } else {
+                // If a user is loaded and registered, proceed to automatic pairing step
+                if (userData.isRegistered && currentStep < 3) {
+                    showStep(3); // Go to pairing step, which will trigger handleAutomaticPairing
+                }
             }
 
-            // Add listener for messages from other tabs (for pairing)
+            // Add listener for messages from other tabs (for pairing updates)
             window.addEventListener('message', (event) => {
                 // Ensure the message is from the same origin and of the correct type
                 if (event.origin === window.location.origin && event.data && event.data.type === PAIRING_MESSAGE_TYPE) {
-                    console.log("Received pairing message from another tab:", event.data);
-                    // When a message is received, trigger a re-load of the state from local storage.
-                    // This ensures all tabs are synchronized with the latest state from local storage.
-                    loadStateFromLocalStorage(); // Re-load the entire state, including pairingData
+                    console.log("Received message from another tab:", event.data);
+                    // Re-load the state from local storage to synchronize with the latest changes
+                    // This is crucial for cross-tab communication without a server.
+                    loadStateFromLocalStorage();
 
-                    // If we are on the phone side and in the pairing step, update UI
-                    if (deviceType === 'phone' && currentStep === 3) {
-                        showNotification('Codice di accoppiamento ricevuto dal tablet.', 'info');
+                    // After loading state, re-evaluate the current step to react to pairing changes
+                    if (userData && userData.isRegistered) { // Ensure user is still logged in
+                         if (pairingData && pairingData.isPaired &&
+                            ((deviceType === 'tablet' && pairingData.tabletId === userId) ||
+                             (deviceType === 'phone' && pairingData.phoneId === userId))) {
+                            showStep(4); // Paired, go to main app
+                            showNotification('Dispositivi accoppiati con successo!', 'success');
+                        } else if (currentStep === 3) {
+                            // If still in pairing step, and not yet paired, try to pair again or show waiting message
+                            handleAutomaticPairing();
+                        }
                     }
                 }
             });
