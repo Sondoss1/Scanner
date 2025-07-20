@@ -575,14 +575,15 @@
                 return;
             }
 
-            // If there's existing UNPAIRED pairing data for THIS tablet, reuse its code value.
-            if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired) {
+            // Check if there's existing UNPAIRED pairing data for THIS tablet with a 3-digit code.
+            // If not, or if the code is not 3 digits, force new generation.
+            if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired && pairingData.pairingCode && pairingData.pairingCode.length === 3) {
                 document.getElementById('pairing-code-display').querySelector('p').textContent = pairingData.pairingCode;
                 document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${pairingData.id}`;
                 pairingId = pairingData.id; // Update global pairingId
                 showNotification('Codice esistente. Inserisci sul telefono.', 'info');
                 hasGeneratedCodeForCurrentSession = true; // Mark as generated based on existing data
-                console.log("Reusing existing pairing code:", pairingData.pairingCode, "and pairingId:", pairingData.id);
+                console.log("Reusing existing 3-digit pairing code:", pairingData.pairingCode, "and pairingId:", pairingData.id);
 
                 // Broadcast existing pairing data for other tabs to pick up
                 window.postMessage({
@@ -593,8 +594,9 @@
                 }, window.location.origin);
 
             }
-            // Otherwise, generate a new code ONLY if we haven't already generated one for this session.
-            else if (!hasGeneratedCodeForCurrentSession) {
+            // Otherwise, generate a new code. This covers cases where no pairingData exists,
+            // or existing pairingData is not for this tablet, or existing pairingCode is not 3 digits.
+            else { 
                 setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
                 const newPairingId = generateUniqueId();
                 const newPairingCode = generateThreeDigitCode(); // Use 3-digit code
@@ -603,7 +605,7 @@
                 document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${newPairingId}`;
                 pairingId = newPairingId; // Update global pairingId
                 hasGeneratedCodeForCurrentSession = true; // Mark that we've generated one
-                console.log("Generated new pairing code:", newPairingCode, "and new pairingId:", newPairingId);
+                console.log("Generated new 3-digit pairing code:", newPairingCode, "and new pairingId:", newPairingId);
 
                 // Store pairing data locally
                 pairingData = {
