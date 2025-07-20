@@ -171,7 +171,7 @@
                 Inserisci questo codice sul tuo telefono:
             </p>
             <div id="pairing-code-display" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg shadow-inner mb-4">
-                <p class="text-5xl font-bold text-blue-600 dark:text-blue-400">000000</p>
+                <p class="text-5xl font-bold text-blue-600 dark:text-blue-400">000</p>
             </div>
             <p id="pairing-id-display" class="mt-4 text-sm text-gray-500 dark:text-gray-400">ID Accoppiamento: N/A</p>
             <button id="regenerate-code-button" class="mt-6 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
@@ -181,10 +181,10 @@
 
         <div id="phone-pairing-ui" class="flex flex-col items-center w-full hidden">
             <p class="text-center text-gray-700 dark:text-gray-300 mb-4">
-                Inserisci il codice di 6 cifre visualizzato sul tablet:
+                Inserisci il codice di 3 cifre visualizzato sul tablet:
             </p>
             <form id="scan-code-form" class="w-full flex flex-col items-center space-y-4">
-                <input type="text" id="scan-input" placeholder="Codice di 6 cifre" maxlength="6" pattern="\d{6}" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
+                <input type="text" id="scan-input" placeholder="Codice di 3 cifre" maxlength="3" pattern="\d{3}" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100" required>
                 <button type="submit" id="scan-code-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50">
                     Accoppia Dispositivo
                 </button>
@@ -295,9 +295,9 @@
         // Simple ID generator (used for products and pairing sessions, not for userId anymore)
         const generateUniqueId = () => crypto.randomUUID();
 
-        // Function to generate a 6-digit numeric code
-        const generateSixDigitCode = () => {
-            return Math.floor(100000 + Math.random() * 900000).toString();
+        // Function to generate a 3-digit numeric code
+        const generateThreeDigitCode = () => {
+            return Math.floor(100 + Math.random() * 900).toString();
         };
 
         // --- UI Management Functions ---
@@ -374,11 +374,12 @@
             }
         };
 
-        // --- Data Management (Local Storage) ---
+        // --- Data Management (Local Storage & Cross-tab Communication) ---
         // Data will persist across page reloads on the same browser/device.
-        // It will NOT synchronize between different browsers or devices.
+        // Pairing data will attempt to synchronize between tabs using window.postMessage.
 
         const LOCAL_STORAGE_KEY = 'supermarketApp_state';
+        const PAIRING_MESSAGE_TYPE = 'supermarketApp_pairing_code';
 
         const saveStateToLocalStorage = () => {
             const stateToSave = {
@@ -434,7 +435,6 @@
                         // If saved data doesn't match any allowed user, clear it and start fresh
                         console.log("Loaded user data does not match any allowed user. Resetting state.");
                         localStorage.removeItem(LOCAL_STORAGE_KEY);
-                        // Do NOT set userId here, it will be set by the initial load logic
                         userData = null;
                         pairingData = null;
                         products = [];
@@ -576,7 +576,6 @@
             }
 
             // If there's existing UNPAIRED pairing data for THIS tablet, reuse its code value.
-            // In this local simulation, we just check if pairingData exists and is for this device.
             if (pairingData && pairingData.tabletId === userId && !pairingData.isPaired) {
                 document.getElementById('pairing-code-display').querySelector('p').textContent = pairingData.pairingCode;
                 document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${pairingData.id}`;
@@ -584,12 +583,21 @@
                 showNotification('Codice esistente. Inserisci sul telefono.', 'info');
                 hasGeneratedCodeForCurrentSession = true; // Mark as generated based on existing data
                 console.log("Reusing existing pairing code:", pairingData.pairingCode, "and pairingId:", pairingData.id);
+
+                // Broadcast existing pairing data for other tabs to pick up
+                window.postMessage({
+                    type: PAIRING_MESSAGE_TYPE,
+                    pairingCode: pairingData.pairingCode,
+                    pairingId: pairingData.id,
+                    tabletId: userId
+                }, window.location.origin);
+
             }
             // Otherwise, generate a new code ONLY if we haven't already generated one for this session.
             else if (!hasGeneratedCodeForCurrentSession) {
                 setButtonLoading('regenerate-code-button', true, 'Rigenera Codice');
                 const newPairingId = generateUniqueId();
-                const newPairingCode = generateSixDigitCode();
+                const newPairingCode = generateThreeDigitCode(); // Use 3-digit code
 
                 document.getElementById('pairing-code-display').querySelector('p').textContent = newPairingCode;
                 document.getElementById('pairing-id-display').textContent = `ID Accoppiamento: ${newPairingId}`;
@@ -601,13 +609,21 @@
                 pairingData = {
                     id: newPairingId,
                     tabletId: userId,
-                    pairingCode: newPairingCode, // Store the 6-digit code
+                    pairingCode: newPairingCode, // Store the 3-digit code
                     isPaired: false,
                     createdAt: new Date()
                 };
                 saveStateToLocalStorage(); // Save state after generating code
                 showNotification('Generato nuovo codice. Inserisci sul telefono.', 'info');
                 setButtonLoading('regenerate-code-button', false, 'Rigenera Codice');
+
+                // Broadcast new pairing data for other tabs to pick up
+                window.postMessage({
+                    type: PAIRING_MESSAGE_TYPE,
+                    pairingCode: newPairingCode,
+                    pairingId: newPairingId,
+                    tabletId: userId
+                }, window.location.origin);
             }
         };
 
@@ -633,15 +649,14 @@
 
             const scanInput = document.getElementById('scan-input').value;
 
-            if (!scanInput || scanInput.length !== 6 || !/^\d{6}$/.test(scanInput)) {
-                showNotification('Inserisci un codice di 6 cifre valido.', 'error');
+            if (!scanInput || scanInput.length !== 3 || !/^\d{3}$/.test(scanInput)) { // Check for 3 digits
+                showNotification('Inserisci un codice di 3 cifre valido.', 'error');
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
                 return;
             }
 
-            // Simulate finding pairing data by scanned code value locally
-            // This assumes the tablet and phone are running in the same browser session
-            // and the tablet has already generated a pairing code.
+            // For phone, we rely on `pairingData` being set by the `message` event listener
+            // which means the tablet must have broadcasted its code.
             if (pairingData && pairingData.pairingCode === scanInput && !pairingData.isPaired) {
                 // Update local pairing data to mark as paired
                 updatePairingDataLocally({
@@ -653,7 +668,7 @@
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
                 // The updatePairingDataLocally function will trigger showStep(4)
             } else {
-                showNotification('Codice non valido o scaduto. Riprova.', 'error');
+                showNotification('Codice non valido o nessun tablet attivo con questo codice. Riprova.', 'error');
                 setButtonLoading('scan-code-button', false, 'Accoppia Dispositivo');
             }
         });
@@ -745,6 +760,28 @@
                 console.log("New Session or unauthorized user - Forcing registration for an allowed user.");
                 showStep(1); // Start at registration for the allowed user
             }
+
+            // Add listener for messages from other tabs (for pairing)
+            window.addEventListener('message', (event) => {
+                // Ensure the message is from the same origin and of the correct type
+                if (event.origin === window.location.origin && event.data && event.data.type === PAIRING_MESSAGE_TYPE) {
+                    console.log("Received pairing message from another tab:", event.data);
+                    // Update our local pairingData with the received data
+                    // This simulates the "server" pushing updates to all clients
+                    pairingData = {
+                        id: event.data.pairingId,
+                        tabletId: event.data.tabletId,
+                        pairingCode: event.data.pairingCode,
+                        isPaired: false, // Assume it's not yet paired on this side until user acts
+                        createdAt: new Date()
+                    };
+                    saveStateToLocalStorage(); // Persist the received pairing data
+                    // If we are on the phone side and in the pairing step, update UI
+                    if (deviceType === 'phone' && currentStep === 3) {
+                        showNotification('Codice di accoppiamento ricevuto dal tablet.', 'info');
+                    }
+                }
+            });
         };
 
     </script>
